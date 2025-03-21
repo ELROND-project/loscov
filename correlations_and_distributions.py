@@ -1,17 +1,12 @@
-##############################################################################################################################
-################################################ 1. PRELIMINARIES ############################################################
-##############################################################################################################################
+import numpy as np
+import config_lite as config
+from functions import useful_functions as uf 
+from cosmology import background
+from scipy.interpolate import CubicSpline
 
-from config import *                                #all constants, defined in the config.py file
+if config.compute_correlations:
 
-################################################## 1.1 Parameters ############################################################
-##############################################################################################################################
-
-from functions.useful_functions import *            #useful functions, defined in the functions/useful_functions.py file
-
-if compute_correlations:
-
-    Thetamin = arcmintorad(Thetamin_arcmin)  #minimum theta from which we calculate correlation functions (in radians)
+    Thetamin = uf.arcmintorad(config.Thetamin_arcmin)  #minimum theta from which we calculate correlation functions (in radians)
     
     ####################################### 1.2 Euclid lenses and galaxies ##################################################
     #########################################################################################################################
@@ -27,53 +22,55 @@ if compute_correlations:
     
     chimax_lens = max(chis)
 
-    zmax_gal = max(binparams['redshifts']) 
+    zmax_gal = max(config.binparams['redshifts']) 
 
     chimax_gal = background.comoving_radial_distance(zmax_gal)
 
     chimax = max(chimax_lens,chimax_gal) 
     
     #place these variables in the global dictionary
-    add_dict(chimax, chid, chis, zd, zs)
+    uf.add_dict(chimax, chid, chis, zd, zs)
 
     ##############################################################################################################################
     ############################################# 2. AUTOCORRELATION FUNCTIONS ###################################################
     ##############################################################################################################################
     
-    from functions.correlations.get_correlations import *
+    from functions.correlations.get_correlations import get_correlations
     
     ######################################################## 2.1 Shear ###########################################################
     ##############################################################################################################################
     
-    
-    from functions.correlations.shear import *
+    from functions.correlations import shear
     
     ################################################# 2.1.1 weight functions ######################################################
     
     # Interpolate to get a fast 1D weight function
-    W_LOS_mean_vec = np.vectorize(W_LOS_mean)
+    W_LOS_mean_vec = np.vectorize(shear.W_LOS_mean)
     chi = np.linspace(0, chimax, 100)
     W = W_LOS_mean_vec(chi)
     W_LOS_mean_intp = CubicSpline(chi, W)
     
     # Interpolate to get a fast 1D weight function
-    WW_LOS_mean_vec = np.vectorize(WW_LOS_mean)
+    WW_LOS_mean_vec = np.vectorize(shear.WW_LOS_mean)
     chi = np.linspace(0, chimax, 100)
     WW = WW_LOS_mean_vec(chi)
     WW_rms = np.sqrt(WW)
     WW_LOS_rms_intp = CubicSpline(chi, WW_rms)
     
-    add_dict(W_LOS_mean_intp, WW_LOS_rms_intp)
+    uf.add_dict(W_LOS_mean_intp, WW_LOS_rms_intp)
     
     ######################################################## 2.1.2 cls ###########################################################
     
-    ls, cl2, cl1, cl32 = get_cls_gamma_LOS(chimax, lmax, nl)
+    ls, cl2, cl1, cl32 = shear.get_cls_gamma_LOS(chimax, config.lmax, config.nl)
     cl2_LOS_intp = CubicSpline(ls, cl2)
     cl1_LOS_intp = CubicSpline(ls, cl1)
     cl32_LOS_intp = CubicSpline(ls, cl32)
     
     ############################################# 2.1.3 correlation functions ####################################################
     
+    Thetamax = config.Thetamax
+    nTheta = config.nTheta
+
     Theta, xi2_LOS_plus, xi2_LOS_minus = get_correlations(
         cl2_LOS_intp, Thetamin, Thetamax, nTheta=nTheta)
     Theta, xi1_LOS_plus, xi1_LOS_minus = get_correlations(
@@ -81,7 +78,7 @@ if compute_correlations:
     Theta, xi32_LOS_plus, xi32_LOS_minus = get_correlations(
         cl32_LOS_intp, Thetamin, Thetamax, nTheta=nTheta)
     
-    Theta_arcmin = radtoarcmin(Theta)
+    Theta_arcmin = uf.radtoarcmin(Theta)
     
     xi2_LOS_plus_intp = CubicSpline(Theta, xi2_LOS_plus)
     xi1_LOS_plus_intp = CubicSpline(Theta, xi1_LOS_plus)
@@ -91,8 +88,10 @@ if compute_correlations:
     xi32_LOS_minus_intp = CubicSpline(Theta, xi32_LOS_minus)
     
     print('Finished 2.1 LOS autocorrelation functions')
+
+    exit()
     
-    add_dict(xi2_LOS_plus_intp, xi1_LOS_plus_intp, xi32_LOS_plus_intp, xi2_LOS_minus_intp, xi1_LOS_minus_intp, xi32_LOS_minus_intp)
+    uf.add_dict(xi2_LOS_plus_intp, xi1_LOS_plus_intp, xi32_LOS_plus_intp, xi2_LOS_minus_intp, xi1_LOS_minus_intp, xi32_LOS_minus_intp)
     
     ######################################################## 2.2 Shape ###########################################################
     ##############################################################################################################################
@@ -123,7 +122,7 @@ if compute_correlations:
         WW_rms = np.sqrt(WW)                             #potential for confusion - WW_rms is actually order W
         WW_os_rms_intp.append(CubicSpline(chi, WW_rms))
     
-    add_dict(W_os_mean_intp, WW_os_rms_intp)
+    uf.add_dict(W_os_mean_intp, WW_os_rms_intp)
     
     ######################################################## 2.2.2 cls ###########################################################
     
@@ -189,7 +188,7 @@ if compute_correlations:
             
     print('Finished 2.2 shape autocorrelation functions')
     
-    add_dict(xi2_eps_plus_intp,xi1_eps_plus_intp,xi2_eps_minus_intp,xi1_eps_minus_intp)
+    uf.add_dict(xi2_eps_plus_intp,xi1_eps_plus_intp,xi2_eps_minus_intp,xi1_eps_minus_intp)
     
     ######################################################## 2.3 Position ########################################################
     ##############################################################################################################################
@@ -221,8 +220,8 @@ if compute_correlations:
         WW_d_rms_intp.append(CubicSpline(chi, WW_rms))
 
     W_d_intp = W_d_mean_intp  #redundant, fix this
-    add_dict(W_d_mean_intp, WW_d_rms_intp)
-    add_dict(W_d_intp)
+    uf.add_dict(W_d_mean_intp, WW_d_rms_intp)
+    uf.add_dict(W_d_intp)
     
     ######################################################## 2.3.2 cls ###########################################################
     
@@ -293,7 +292,7 @@ if compute_correlations:
             
     print('Finished 2.3 position autocorrelation functions')
     
-    add_dict(xi2_d_intp, xi1_d_intp, xi32_d_intp)
+    uf.add_dict(xi2_d_intp, xi1_d_intp, xi32_d_intp)
     
     ##############################################################################################################################
     ############################################ 3. MIXED CORRELATION FUNCTIONS ##################################################
@@ -391,7 +390,7 @@ if compute_correlations:
     
     print('Finished 3.1 shear shape correlation functions')
     
-    add_dict(xi2_LOS_eps_plus_intp, xi2_LOS_eps_minus_intp, xi32_LOS_eps2_plus_intp, xi32_LOS_eps2_minus_intp, xi32_LOS2_eps_plus_intp, xi32_LOS2_eps_minus_intp, xi1_LOS_eps_plus_intp, xi1_LOS_eps_minus_intp)
+    uf.add_dict(xi2_LOS_eps_plus_intp, xi2_LOS_eps_minus_intp, xi32_LOS_eps2_plus_intp, xi32_LOS_eps2_minus_intp, xi32_LOS2_eps_plus_intp, xi32_LOS2_eps_minus_intp, xi1_LOS_eps_plus_intp, xi1_LOS_eps_minus_intp)
     
     #################################################### 3.2 shear position ######################################################
     ##############################################################################################################################
@@ -468,7 +467,7 @@ if compute_correlations:
     
     print('Finished 3.2 shear position correlation functions')
     
-    add_dict(xi2_LOS_d_intp, xi32_LOS_d2_intp, xi32_LOS2_d_intp, xi1_LOS_d_intp)
+    uf.add_dict(xi2_LOS_d_intp, xi32_LOS_d2_intp, xi32_LOS2_d_intp, xi1_LOS_d_intp)
     
     #################################################### 3.3 shape position ######################################################
     ##############################################################################################################################
@@ -570,9 +569,9 @@ if compute_correlations:
             
     print('Finished 3.3 shape position correlation functions')
     
-    add_dict(xi2_d_eps_intp, xi32_d2_eps_intp, xi32_d_eps2_intp, xi1_d_eps_intp)
+    uf.add_dict(xi2_d_eps_intp, xi32_d2_eps_intp, xi32_d_eps2_intp, xi1_d_eps_intp)
         
-    save_pickle(global_dict, 'correlations', f"Saved all correlations")
+    uf.save_pickle(global_dict, 'correlations', f"Saved all correlations")
 
 ##############################################################################################################################
 ############################################## 4 PREPARING FOR THE RUN #######################################################
@@ -591,7 +590,7 @@ distributions = {"LL": distribution_LL,
                 "Le": distribution_Le,
                 "Lp": distribution_Lp}
 
-save_pickle(distributions, 'distributions', f"Saved all distributions")
+uf.save_pickle(distributions, 'distributions', f"Saved all distributions")
 
 print(f"Successfully defined distribution functions.")
 
