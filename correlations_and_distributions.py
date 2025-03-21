@@ -1,5 +1,5 @@
 import numpy as np
-import config_lite as config
+import config as config
 from functions import useful_functions as uf 
 from cosmology import background
 from scipy.interpolate import CubicSpline

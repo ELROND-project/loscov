@@ -93,48 +93,6 @@ nTheta = 10000                                   #number of points used to compu
 lmax = 1e8
 nl = 1000
 
-################################################## Imports #####################################################
-
-import sys, platform, os
-import numpy as np
-import matplotlib
-from matplotlib import pyplot as plt
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-import time
-
-from scipy import constants, special, integrate, stats
-from scipy.interpolate import CubicSpline, RegularGridInterpolator
-from hankel import HankelTransform
-
-import pickle
-from multiprocessing import Pool, cpu_count
-from multiprocessing import Process, Manager
-from itertools import product
-import inspect
-from scipy.stats import norm
-
-############################################### Cosmology #####################################################
-
-# NH: moved to dedicated file
-
-# camb_path = os.path.realpath(os.path.join(os.getcwd(),'..'))
-# sys.path.insert(0,camb_path)
-# import camb
-# from camb import model, initialpower
-
-# CAMB parameters
-# pars = camb.CAMBparams()                              #initialise the CAMBparams object, which contains all cosmological parameters and settings
-# pars.set_cosmology(H0=H0, ombh2=ombh2, omch2=omch2)   #define the cosmological model
-# pars.InitPower.set_params(ns=ns)                      #set the primordial power spectrum parameters
-# background = camb.get_background(pars)                #compute the background cosmological evolution
-
-# #this gives us an interpolator which can be used to generate the Weyl power spectrum for any range of z and k
-# Weyl_power_spectra = camb.get_matter_power_interpolator(pars, zmax=zmax, kmax=kmax, zs=None,
-# hubble_units=False, k_hunit=False, var1=model.Transfer_Weyl, var2=model.Transfer_Weyl, extrap_kmax=extrap_kmax)
-
-# correlations_prefactor = -2*((c*1e-3)**2) / (3 * (ombh2 + omch2) * 1e4)        #a prefactor appearing in the angular power spectrum (incl unit conversions)
-
 ############################################## shared variables ##############################################
 
 # Shared variables
