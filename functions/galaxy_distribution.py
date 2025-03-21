@@ -1,9 +1,5 @@
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from config import *
-
+import numpy as np
+from config import binparams
 
 def pb(z, b):
     """

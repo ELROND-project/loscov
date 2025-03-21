@@ -1,5 +1,5 @@
 import numpy as np
-import config_lite as config
+import config
 from functions import useful_functions as uf 
 from cosmology import background
 from scipy.interpolate import CubicSpline
@@ -36,6 +36,9 @@ if config.compute_correlations:
     ##############################################################################################################################
     
     from functions.correlations.get_correlations import get_correlations
+
+    lmax = config.lmax
+    nl = config.nl
     
     ######################################################## 2.1 Shear ###########################################################
     ##############################################################################################################################
@@ -61,7 +64,7 @@ if config.compute_correlations:
     
     ######################################################## 2.1.2 cls ###########################################################
     
-    ls, cl2, cl1, cl32 = shear.get_cls_gamma_LOS(chimax, config.lmax, config.nl)
+    ls, cl2, cl1, cl32 = shear.get_cls_gamma_LOS(chimax, lmax, nl)
     cl2_LOS_intp = CubicSpline(ls, cl2)
     cl1_LOS_intp = CubicSpline(ls, cl1)
     cl32_LOS_intp = CubicSpline(ls, cl32)
@@ -88,16 +91,14 @@ if config.compute_correlations:
     xi32_LOS_minus_intp = CubicSpline(Theta, xi32_LOS_minus)
     
     print('Finished 2.1 LOS autocorrelation functions')
-
-    exit()
     
     uf.add_dict(xi2_LOS_plus_intp, xi1_LOS_plus_intp, xi32_LOS_plus_intp, xi2_LOS_minus_intp, xi1_LOS_minus_intp, xi32_LOS_minus_intp)
     
     ######################################################## 2.2 Shape ###########################################################
     ##############################################################################################################################
     
-    
-    from functions.correlations.shape import *
+
+    from functions.correlations import shape
     
     ################################################# 2.2.1 weight functions ######################################################
     
@@ -105,8 +106,8 @@ if config.compute_correlations:
     
     W_os_mean_intp = []
     
-    for b in range(5):
-        W_os_mean_vec = np.vectorize(W_os_mean)
+    for b in range(5): # NH: what are these hardcoded 5s?
+        W_os_mean_vec = np.vectorize(shape.W_os_mean)
         chi = np.linspace(1e-3, chimax, 100)
         W = W_os_mean_vec(chi, b)
         W_os_mean_intp.append(CubicSpline(chi, W))
@@ -116,7 +117,7 @@ if config.compute_correlations:
     WW_os_rms_intp = []
     
     for b in range(5):
-        WW_os_mean_vec = np.vectorize(WW_os_mean)
+        WW_os_mean_vec = np.vectorize(shape.WW_os_mean)
         chi = np.linspace(1e-5, chimax, 100)                    #maybe parameterise these?
         WW = WW_os_mean_vec(chi, b)
         WW_rms = np.sqrt(WW)                             #potential for confusion - WW_rms is actually order W
@@ -136,7 +137,7 @@ if config.compute_correlations:
     
         for b2 in range(5): #loop through b'
             
-            ls, cl2, cl1 = get_cl_gamma(b1, b2, chimax, lmax, nl) #each time we recalculate everything (a bit inefficient)
+            ls, cl2, cl1 = shape.get_cl_gamma(b1, b2, chimax, lmax, nl) #each time we recalculate everything (a bit inefficient)
             
             cl2_eps_intp[b1].append(CubicSpline(ls, cl2))
     
@@ -187,6 +188,8 @@ if config.compute_correlations:
             xi2_eps_minus_intp[b1].append(CubicSpline(Theta_list[b1], xi2_eps_minus_list[b1][b2]))
             
     print('Finished 2.2 shape autocorrelation functions')
+
+    exit()
     
     uf.add_dict(xi2_eps_plus_intp,xi1_eps_plus_intp,xi2_eps_minus_intp,xi1_eps_minus_intp)
     

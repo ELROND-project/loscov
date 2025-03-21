@@ -7,6 +7,8 @@ from config import *
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from useful_functions import *
 
+from cosmology import background, Weyl_power_spectra
+
 
 def get_cls_mixed_LOS_os(b, chimax, lmax, nl):
     """
@@ -22,9 +24,9 @@ def get_cls_mixed_LOS_os(b, chimax, lmax, nl):
     nz = 100 #number of elements for discrete integral along the los
     
     # Conformal distances and redshifts
-    results = camb.get_background(pars)
+    # results = camb.get_background(pars)
     chis = np.linspace(0, chimax, nz)
-    zs = results.redshift_at_comoving_radial_distance(chis)
+    zs = background.redshift_at_comoving_radial_distance(chis)
     
     # Array of delta_chi, and drop first and last points where things go singular
     dchis = (chis[2:]-chis[:-2])/2

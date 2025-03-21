@@ -1,11 +1,18 @@
-import sys
-import os
+# import sys
+# import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from config import *
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+# from config import *
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from useful_functions import *
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+# from useful_functions import *
+
+import numpy as np
+# import config
+from functions import useful_functions as uf 
+
+from cosmology import background, Weyl_power_spectra, correlations_prefactor
+
 
 def get_cls_mixed_d_os(b1, b2, chimax, lmax, nl):
     """
@@ -17,14 +24,14 @@ def get_cls_mixed_d_os(b1, b2, chimax, lmax, nl):
     b2 : os redshift bin in question (0 to 4)
     """
     
-    get_item('W_d_mean_intp', 'WW_d_rms_intp', 'W_os_mean_intp', 'WW_os_rms_intp')
+    uf.get_item('W_d_mean_intp', 'WW_d_rms_intp', 'W_os_mean_intp', 'WW_os_rms_intp')
     
     nz = 100 #number of elements for discrete integral along the los
     
     # Conformal distances and redshifts
-    results = camb.get_background(pars)
+    # results = camb.get_background(pars)
     chis = np.linspace(0, chimax, nz)
-    zs = results.redshift_at_comoving_radial_distance(chis)
+    zs = background.redshift_at_comoving_radial_distance(chis)
     
     # Array of delta_chi, and drop first and last points where things go singular
     dchis = (chis[2:]-chis[:-2])/2

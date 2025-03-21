@@ -1,9 +1,10 @@
-from config import * 
+import numpy as np
+from config import extrap_kmax
+from functions import useful_functions as uf 
+from cosmology import background, Weyl_power_spectra
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from useful_functions import *
 
-get_item('chid', 'chis')
+uf.get_item('chid', 'chis')
 
 ################################################ LOS Weight function #####################################################
 
@@ -56,14 +57,14 @@ def get_cls_gamma_LOS(chimax, lmax, nl):
     nl is the number of values to be computed.
     """
 
-    get_item('W_LOS_mean_intp', 'WW_LOS_rms_intp')
+    uf.get_item('W_LOS_mean_intp', 'WW_LOS_rms_intp')
     
     nz = 100 #number of elements for discrete integral along the los
     
     # Conformal distances and redshifts
-    results = camb.get_background(pars)
+    # results = camb.get_background(pars)
     chis = np.linspace(0, chimax, nz)
-    zs = results.redshift_at_comoving_radial_distance(chis)
+    zs = background.redshift_at_comoving_radial_distance(chis)
     
     # Array of delta_chi, and drop first and last points where things go singular
     dchis = (chis[2:]-chis[:-2])/2

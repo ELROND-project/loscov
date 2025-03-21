@@ -8,6 +8,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from galaxy_distribution import *
 from useful_functions import *
 
+from cosmology import background, Weyl_power_spectra, correlations_prefactor
+
 #################################################### Galaxy bias ######################################################
 
 #the galaxy bias
@@ -53,9 +55,9 @@ def get_cl_d(b1, b2, chimax, lmax, nl):
         nz = 100 #number of elements for discrete integral along the los
 
         # Conformal distances and redshifts
-        results = camb.get_background(pars)
+        # results = camb.get_background(pars)
         chis = np.linspace(0, chimax, nz)
-        zs = results.redshift_at_comoving_radial_distance(chis)
+        zs = background.redshift_at_comoving_radial_distance(chis)
 
 		# Array of delta_z, and drop first and last points where things go singular
         dchis = (chis[2:]-chis[:-2])/2
