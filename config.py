@@ -1,7 +1,7 @@
 import numpy as np
 
 use_approx = False                #approximate calculation
-compute_correlations = False      #computes the correlation functions necessary for calculating the covariance matrices,
+compute_correlations = True      #computes the correlation functions necessary for calculating the covariance matrices,
                                  #and saves them in a pickle file. Set to False if this has already been done, which
                                  #saves computation time
 
