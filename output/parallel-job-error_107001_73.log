@@ -1,2 +1,0 @@
-/var/spool/slurmd/job107075/slurm_script : ligne 25 : 2150033 Processus arrêté      python -u job.py $TASK
-cat: 'parallel-job-output_107001_*.log': Aucun fichier ou dossier de ce type

@@ -1,3 +1,0 @@
-/var/spool/slurmd/job107022/slurm_script : ligne 25 : 642484 Processus arrêté      python -u job.py $TASK
-cat: 'parallel-job-output_107001_*.log': Aucun fichier ou dossier de ce type
-slurmstepd: error: slurm_send_node_msg: [socket:[2086313]] slurm_bufs_sendto(msg_type=REQUEST_COMPLETE_BATCH_SCRIPT) failed: Unexpected missing socket error

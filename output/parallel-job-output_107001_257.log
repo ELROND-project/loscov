@@ -1,8 +1,0 @@
-Successfully saved plus_correlation for b1=None, b2=None, cov_matrix=LLLL at matrices_1e9_v1/LLLL/plus_correlation
-Successfully saved minus_correlation for b1=None, b2=None, cov_matrix=LLLL at matrices_1e9_v1/LLLL/minus_correlation
-Warning! Total error for LLLL scov pp angular bins (0, 0) is 8.9
-Warning! Total error for LLLL scov mm angular bins (0, 0) is 14.0
-Warning! Total error for LLLL scov mm angular bins (1, 1) is 5.5
-Warning! Total error for LLLL scov pm angular bins (0, 0) is 229.7
-Successfully saved scov for b1=None, b2=None, cov_matrix=LLLL at matrices_1e9_v1/LLLL/scov
-Finished task: None, None, LLLL, scov

@@ -1,9 +1,0 @@
-Warning! Total error for LpLe ncov p redshifts (0, 0) angular bins (0, 4) is 10.7
-Warning! Total error for LpLe ncov m redshifts (0, 0) angular bins (1, 4) is 12.3
-Warning! Total error for LpLe ncov p redshifts (0, 0) angular bins (2, 2) is 42.7
-Warning! Total error for LpLe ncov m redshifts (0, 0) angular bins (3, 1) is 5.0
-Warning! Total error for LpLe ncov m redshifts (0, 0) angular bins (4, 0) is 8.7
-Warning! Total error for LpLe ncov p redshifts (0, 0) angular bins (4, 2) is 16.8
-Warning! Total error for LpLe ncov m redshifts (0, 0) angular bins (4, 2) is 5.1
-Successfully saved ncov for b1=0, b2=0, cov_matrix=LpLe at matrices_1e9_v1/LpLe/ncov00
-Finished task: 0, 0, LpLe, ncov
