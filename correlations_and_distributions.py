@@ -3,6 +3,7 @@ import config_lite as config
 from functions import useful_functions as uf 
 from cosmology import background
 from scipy.interpolate import CubicSpline
+from itertools import product
 
 if config.compute_correlations:
 
@@ -567,12 +568,10 @@ if config.compute_correlations:
             xi1_d_eps_intp[b1].append(CubicSpline(Theta_list[b1], xi1_d_eps_list[b1][b2]))
             
     print('Finished 3.3 shape position correlation functions')
-
-    exit()
     
     uf.add_dict(xi2_d_eps_intp, xi32_d2_eps_intp, xi32_d_eps2_intp, xi1_d_eps_intp)
         
-    uf.save_pickle(global_dict, 'correlations', f"Saved all correlations")
+    uf.save_pickle(config.global_dict, 'correlations', f"Saved all correlations")
 
 ##############################################################################################################################
 ############################################## 4 PREPARING FOR THE RUN #######################################################
@@ -581,17 +580,27 @@ if config.compute_correlations:
 ############################################ 4.1 Defining distributions ######################################################
 ##############################################################################################################################
 
-from functions.distributions_and_correlations import Distributions
+from functions.distribution import Distributions
 
-distribution_LL = Distributions(Nlens, binscheme=binscheme_LL, Nbina=Nbina_LL, Thetamax=Thetamax_LL) 
-distribution_Le = Distributions(NGal, binscheme=binscheme_Le, Nbina=Nbina_Le, Thetamax=Thetamax_Le)
-distribution_Lp = Distributions(NGal, binscheme=binscheme_Lp, Nbina=Nbina_Lp, Thetamax=Thetamax_Lp)
+Nlens = config.Nlens
+NGal = config.NGal
+Nbina_LL = config.Nbina_LL
+Nbina_Le = config.Nbina_Le
+Nbina_Lp = config.Nbina_Lp
+Thetamax_LL = config.Thetamax_LL
+Thetamax_Le = config.Thetamax_Le
+Thetamax_Lp = config.Thetamax_Lp
+sky_coverage = config.sky_coverage
+
+distribution_LL = Distributions(Nlens, binscheme=config.binscheme_LL, sky_coverage=sky_coverage, Nbina=Nbina_LL, Thetamax=Thetamax_LL) 
+distribution_Le = Distributions(NGal, binscheme=config.binscheme_Le, sky_coverage=sky_coverage, Nbina=Nbina_Le, Thetamax=Thetamax_Le)
+distribution_Lp = Distributions(NGal, binscheme=config.binscheme_Lp, sky_coverage=sky_coverage, Nbina=Nbina_Lp, Thetamax=Thetamax_Lp)
 
 distributions = {"LL": distribution_LL,
                 "Le": distribution_Le,
                 "Lp": distribution_Lp}
 
-uf.save_pickle(distributions, 'distributions', f"Saved all distributions")
+uf.save_pickle(distributions, 'distributions', f"Saved all distributions") # NH: add a file extension?
 
 print(f"Successfully defined distribution functions.")
 
@@ -601,23 +610,27 @@ print(f"Successfully defined distribution functions.")
 # Output file name
 task_file = "tasks.txt"
 
+b1_values = config.b1_values
+b2_values = config.b2_values
+cov_types = config.cov_types
+
 print(b1_values)
 
 # Open file to write task commands
 with open(task_file, "w") as f:
     # Full (b1, b2) iteration
     for b1, b2 in product(b1_values, b2_values):
-        for cov_matrix in cov_matrices_full:
+        for cov_matrix in config.cov_matrices_full:
             for cov_type in cov_types:
                 f.write(f"{b1} {b2} {cov_matrix} {cov_type}\n")
 
     # Single b1 iteration
-    for cov_matrix, b1 in product(cov_matrices_b1, b1_values):
+    for cov_matrix, b1 in product(config.cov_matrices_b1, b1_values):
         for cov_type in cov_types:
             f.write(f"{b1} None {cov_matrix} {cov_type}\n")
 
     # No b1, b2 iteration (only one call)
-    for cov_matrix in cov_matrices_no_b:
+    for cov_matrix in config.cov_matrices_no_b:
         for cov_type in cov_types:
             f.write(f"None None {cov_matrix} {cov_type}\n")
 

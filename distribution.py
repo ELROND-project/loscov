@@ -1,10 +1,7 @@
-import sys
-import os
+import numpy as np
+import config
+from functions import useful_functions as uf 
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from config import *
-
-from functions.useful_functions import *
 
 class Distributions:
     """
@@ -12,7 +9,8 @@ class Distributions:
     and their binning in angular separation
     """
     
-    def __init__(self, Nobjects, binscheme=None, sky_coverage=sky_coverage, Nbina=Nbina, Thetamax=Thetamax_dist):
+    def __init__(self, Nobjects, binscheme, sky_coverage, Nbina, Thetamax):
+
         """
         Arguments:
         - Nlens         : number of lenses we can use
@@ -100,9 +98,9 @@ def generate_binned_correlation(distributions, cov_matrix, b1, b2):
     """Handles generation of binned correlation functions based on cov_matrix type."""
     correlation_data = {}
 
-    get_item('xi2_LOS_plus_intp','xi2_LOS_minus_intp')
-    get_item('xi2_LOS_eps_plus_intp','xi2_LOS_eps_minus_intp')
-    get_item('xi2_LOS_d_intp')
+    uf.get_item('xi2_LOS_plus_intp','xi2_LOS_minus_intp')
+    uf.get_item('xi2_LOS_eps_plus_intp','xi2_LOS_eps_minus_intp')
+    uf.get_item('xi2_LOS_d_intp')
 
     correlation_mapping = {
         "LLLL": lambda: {
