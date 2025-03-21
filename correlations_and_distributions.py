@@ -571,7 +571,7 @@ if config.compute_correlations:
     
     uf.add_dict(xi2_d_eps_intp, xi32_d2_eps_intp, xi32_d_eps2_intp, xi1_d_eps_intp)
         
-    uf.save_pickle(config.global_dict, 'correlations', f"Saved all correlations")
+    uf.save_pickle(config.global_dict, 'correlations.pkl', f"Saved all correlations")
 
 ##############################################################################################################################
 ############################################## 4 PREPARING FOR THE RUN #######################################################
@@ -600,7 +600,7 @@ distributions = {"LL": distribution_LL,
                 "Le": distribution_Le,
                 "Lp": distribution_Lp}
 
-uf.save_pickle(distributions, 'distributions', f"Saved all distributions") # NH: add a file extension?
+uf.save_pickle(distributions, 'distributions.pkl', f"Saved all distributions") # NH: add a file extension?
 
 print(f"Successfully defined distribution functions.")
 
