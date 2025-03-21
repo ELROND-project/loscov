@@ -1,11 +1,7 @@
-import sys
-import os
+import numpy as np
+from hankel import HankelTransform
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from config import *
-
-
-def get_correlations(cl_intp, Thetamin, Thetamax, nTheta=nTheta):
+def get_correlations(cl_intp, Thetamin, Thetamax, nTheta):
     """
     Generates the + and - correlation functions from the angular power spectrum
     using Hankel transformations, for a range of apertures [Thetamin, Thetamax]
@@ -32,7 +28,7 @@ def get_correlations(cl_intp, Thetamin, Thetamax, nTheta=nTheta):
     
     return Theta, xi_plus, xi_minus
 
-def get_DD_correlations(cl_DD_intp, Thetamin, Thetamax, nTheta=nTheta):
+def get_DD_correlations(cl_DD_intp, Thetamin, Thetamax, nTheta):
 	"""
 	A function that computes the integrated correlation function 
     for delta - delta in flat sky, using Hankel transform for a 
@@ -55,7 +51,7 @@ def get_DD_correlations(cl_DD_intp, Thetamin, Thetamax, nTheta=nTheta):
 		
 	return Theta, xi
 
-def get_gD_correlations(cl_gD_intp, Thetamin, Thetamax, nTheta=nTheta):
+def get_gD_correlations(cl_gD_intp, Thetamin, Thetamax, nTheta):
 	"""
 	Generates the LOS shear (or cosmic shear)-Delta correlation 
     function, using Hankel transformations, for a range of apertures 
