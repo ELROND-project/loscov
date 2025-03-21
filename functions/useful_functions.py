@@ -1,9 +1,13 @@
-import sys
-import os
+import numpy as np
+import inspect
 import math
+import pickle
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from config import *
+# for the Monte Carlo integration
+from config import nsamp, confidence, num_batches
+
+# for file pickling
+from config import global_dict
 
 
 ############################################ USEFUL FUNCTIONS ###########################################
