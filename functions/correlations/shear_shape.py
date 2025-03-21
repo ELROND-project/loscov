@@ -1,12 +1,6 @@
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from config import *
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from useful_functions import *
-
+import numpy as np
+from config import extrap_kmax
+from functions import useful_functions as uf 
 from cosmology import background, Weyl_power_spectra
 
 
@@ -19,7 +13,7 @@ def get_cls_mixed_LOS_os(b, chimax, lmax, nl):
     b : redshift bin in question (0 to 4)
     """
 
-    get_item('W_LOS_mean_intp', 'WW_LOS_rms_intp', 'W_os_mean_intp', 'WW_os_rms_intp')
+    uf.get_item('W_LOS_mean_intp', 'WW_LOS_rms_intp', 'W_os_mean_intp', 'WW_os_rms_intp')
     
     nz = 100 #number of elements for discrete integral along the los
     

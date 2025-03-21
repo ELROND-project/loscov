@@ -1,12 +1,11 @@
 import os
 import sys
 
-import config
-
 camb_path = os.path.realpath(os.path.join(os.getcwd(),'..'))
 sys.path.insert(0,camb_path)
+
 import camb
-from camb import model, initialpower
+import config
 
 pars = camb.CAMBparams() #initialise the CAMBparams object, which contains all cosmological parameters and settings
 
@@ -25,6 +24,6 @@ background = camb.get_background(pars)                #compute the background co
 
 #this gives us an interpolator which can be used to generate the Weyl power spectrum for any range of z and k
 Weyl_power_spectra = camb.get_matter_power_interpolator(pars, zmax=zmax, kmax=kmax, zs=None,
-hubble_units=False, k_hunit=False, var1=model.Transfer_Weyl, var2=model.Transfer_Weyl, extrap_kmax=extrap_kmax)
+hubble_units=False, k_hunit=False, var1=camb.model.Transfer_Weyl, var2=camb.model.Transfer_Weyl, extrap_kmax=extrap_kmax)
 
 correlations_prefactor = -2*((clight*1e-3)**2) / (3 * (baryons + cdm) * 1e4)     

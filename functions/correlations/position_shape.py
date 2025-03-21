@@ -1,16 +1,6 @@
-# import sys
-# import os
-
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-# from config import *
-
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-# from useful_functions import *
-
 import numpy as np
-# import config
+from config import extrap_kmax
 from functions import useful_functions as uf 
-
 from cosmology import background, Weyl_power_spectra, correlations_prefactor
 
 

@@ -1,13 +1,7 @@
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from config import *
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from galaxy_distribution import *
-from useful_functions import *
-
+import numpy as np
+from config import extrap_kmax
+from functions.galaxy_distribution import pb
+from functions import useful_functions as uf 
 from cosmology import background, Weyl_power_spectra, correlations_prefactor
 
 #################################################### Galaxy bias ######################################################
@@ -39,7 +33,7 @@ def get_cl_d(b1, b2, chimax, lmax, nl):
     returns an array of ls and the corresponding array of Cls
     """
 
-    get_item('W_d_intp', 'WW_d_rms_intp') #these are just interpolated versions of the weight functions
+    uf.get_item('W_d_intp', 'WW_d_rms_intp') #these are just interpolated versions of the weight functions
     
 	# Integration over chi
     lmin = 1

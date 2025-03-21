@@ -1,5 +1,5 @@
 import numpy as np
-import config
+import config_lite as config
 from functions import useful_functions as uf 
 from cosmology import background
 from scipy.interpolate import CubicSpline
@@ -35,10 +35,12 @@ if config.compute_correlations:
     ############################################# 2. AUTOCORRELATION FUNCTIONS ###################################################
     ##############################################################################################################################
     
-    from functions.correlations.get_correlations import get_correlations
+    from functions.correlations.get_correlations import get_correlations, get_DD_correlations, get_gD_correlations
 
     lmax = config.lmax
     nl = config.nl
+    Thetamax = config.Thetamax
+    nTheta = config.nTheta
     
     ######################################################## 2.1 Shear ###########################################################
     ##############################################################################################################################
@@ -70,9 +72,6 @@ if config.compute_correlations:
     cl32_LOS_intp = CubicSpline(ls, cl32)
     
     ############################################# 2.1.3 correlation functions ####################################################
-    
-    Thetamax = config.Thetamax
-    nTheta = config.nTheta
 
     Theta, xi2_LOS_plus, xi2_LOS_minus = get_correlations(
         cl2_LOS_intp, Thetamin, Thetamax, nTheta=nTheta)
@@ -188,16 +187,13 @@ if config.compute_correlations:
             xi2_eps_minus_intp[b1].append(CubicSpline(Theta_list[b1], xi2_eps_minus_list[b1][b2]))
             
     print('Finished 2.2 shape autocorrelation functions')
-
-    exit()
     
     uf.add_dict(xi2_eps_plus_intp,xi1_eps_plus_intp,xi2_eps_minus_intp,xi1_eps_minus_intp)
     
     ######################################################## 2.3 Position ########################################################
     ##############################################################################################################################
 
-    
-    from functions.correlations.position import *
+    from functions.correlations import position
     
     ################################################# 2.3.1 weight functions ######################################################
     
@@ -206,7 +202,7 @@ if config.compute_correlations:
     W_d_mean_intp = []
     
     for b in range(5):
-        W_d_mean_vec = np.vectorize(W_d)
+        W_d_mean_vec = np.vectorize(position.W_d)
         chi = np.linspace(1e-3, chimax, 100)
         W = W_d_mean_vec(chi, b)
         W_d_mean_intp.append(CubicSpline(chi, W))
@@ -216,7 +212,7 @@ if config.compute_correlations:
     WW_d_rms_intp = []
     
     for b in range(5):
-        WW_d_mean_vec = np.vectorize(WW_d)
+        WW_d_mean_vec = np.vectorize(position.WW_d)
         chi = np.linspace(1e-5, chimax, 100)                    #maybe parameterise these?
         WW = WW_d_mean_vec(chi, b)
         WW_rms = np.sqrt(WW)
@@ -240,7 +236,7 @@ if config.compute_correlations:
         
         for b2 in range(5): #loop through b'
             
-            ls, cl2, cl1, cl32 = get_cl_d(b1, b2, chimax, lmax, nl) #each time we recalculate everything (a bit inefficient)
+            ls, cl2, cl1, cl32 = position.get_cl_d(b1, b2, chimax, lmax, nl) #each time we recalculate everything (a bit inefficient)
             
             cl2_d_intp[b1].append(CubicSpline(ls, cl2))
             cl32_d_intp[b1].append(CubicSpline(ls, cl32))     #almost certainly wrong
@@ -304,7 +300,7 @@ if config.compute_correlations:
     ##################################################### 3.1 shear shape ########################################################
     ##############################################################################################################################
     
-    from functions.correlations.shear_shape import *
+    from functions.correlations import shear_shape
     
     ls_list = []
     cl2LOSos_intp_list = []
@@ -314,7 +310,7 @@ if config.compute_correlations:
     
     for b in range(5):
 
-        ls, cl2LOSos, cl32LOSos2, cl32LOS2os, cl1LOSos = get_cls_mixed_LOS_os(b, chimax, lmax, nl)
+        ls, cl2LOSos, cl32LOSos2, cl32LOS2os, cl1LOSos = shear_shape.get_cls_mixed_LOS_os(b, chimax, lmax, nl)
 
         ls_list.append(ls)
 
@@ -398,7 +394,7 @@ if config.compute_correlations:
     #################################################### 3.2 shear position ######################################################
     ##############################################################################################################################
     
-    from functions.correlations.shear_position import *
+    from functions.correlations import shear_position
     
     ls_list = []
     cl2LOSd_intp_list = []
@@ -408,7 +404,7 @@ if config.compute_correlations:
     
     for b in range(5):
         
-        ls, cl2LOSd, cl32LOSd2, cl32LOS2d, cl1LOSd = get_cls_mixed_LOS_d(b, chimax, lmax, nl)
+        ls, cl2LOSd, cl32LOSd2, cl32LOS2d, cl1LOSd = shear_position.get_cls_mixed_LOS_d(b, chimax, lmax, nl)
             
         ls_list.append(ls)
         cl2LOSd_intp_list.append(CubicSpline(ls, cl2LOSd))
@@ -475,7 +471,7 @@ if config.compute_correlations:
     #################################################### 3.3 shape position ######################################################
     ##############################################################################################################################
     
-    from functions.correlations.position_shape import *
+    from functions.correlations import position_shape
     
     ls_list = []
     cl2dos_intp_list = []
@@ -492,7 +488,7 @@ if config.compute_correlations:
     
         for b2 in range(5):
         
-            ls, cl2dos, cl32dos2, cl32d2os, cl1dos = get_cls_mixed_d_os(b1, b2, chimax, lmax, nl)
+            ls, cl2dos, cl32dos2, cl32d2os, cl1dos = position_shape.get_cls_mixed_d_os(b1, b2, chimax, lmax, nl)
             
             cl2dos_intp_list[b1].append(CubicSpline(ls, cl2dos))
             cl32dos2_intp_list[b1].append(CubicSpline(ls, cl32dos2))
@@ -571,6 +567,8 @@ if config.compute_correlations:
             xi1_d_eps_intp[b1].append(CubicSpline(Theta_list[b1], xi1_d_eps_list[b1][b2]))
             
     print('Finished 3.3 shape position correlation functions')
+
+    exit()
     
     uf.add_dict(xi2_d_eps_intp, xi32_d2_eps_intp, xi32_d_eps2_intp, xi1_d_eps_intp)
         
@@ -583,7 +581,7 @@ if config.compute_correlations:
 ############################################ 4.1 Defining distributions ######################################################
 ##############################################################################################################################
 
-from functions.distributions_and_correlations import *
+from functions.distributions_and_correlations import Distributions
 
 distribution_LL = Distributions(Nlens, binscheme=binscheme_LL, Nbina=Nbina_LL, Thetamax=Thetamax_LL) 
 distribution_Le = Distributions(NGal, binscheme=binscheme_Le, Nbina=Nbina_Le, Thetamax=Thetamax_Le)
