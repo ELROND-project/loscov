@@ -25,7 +25,7 @@ Contains the results of the run for a given max number of samples in the monte c
 
 Contains the outputs and errors of a run (here you can check for large uncertainties, as well as any errors in the runs)
 
-## runtime_(number).log
+### runtime_(number).log
 
 This tells you how long different pieces of the covariance matrices took to run, with the number of samples in the monte carlo integrator set to (number)
 
