@@ -19,7 +19,7 @@ def get_cls_mixed_EP(b1, b2, chimax, lmax, nl):
     b2 : d redshift bin in question (0 to Nbinz_P)
     """
     
-    get_item('W_d_mean_intp', 'WW_d_rms_intp', 'W_os_mean_intp', 'WW_os_rms_intp')
+    get_item('Q_d_mean_intp', 'QQ_d_rms_intp', 'Q_os_mean_intp', 'QQ_os_rms_intp')
     
     nz = 100 #number of elements for discrete integral along the los
     
@@ -32,14 +32,17 @@ def get_cls_mixed_EP(b1, b2, chimax, lmax, nl):
     dchis = (chis[2:]-chis[:-2])/2
     chis = chis[1:-1]
     zs = zs[1:-1]
+
+    #CAMB correction
+    CAMB_factor = ((1+zs) * 1.5 * Omega_M * (H0/(c*1e-3))**2)**(-1)
     
     # Lensing kernel (here weak lensing shear)
-    kernel2os = W_os_mean_intp[b1](chis) / chis
-    kernelos = WW_os_rms_intp[b1](chis) / chis
+    kernel2os = Q_os_mean_intp[b1](chis) * CAMB_factor
+    kernelos = QQ_os_rms_intp[b1](chis) * CAMB_factor
     
     # Lensing kernel (here position)
-    kernel2d = W_d_mean_intp[b2](chis) / chis
-    kerneld = WW_d_rms_intp[b2](chis) / chis  
+    kernel2d = Q_d_mean_intp[b2](chis) * CAMB_factor
+    kerneld = QQ_d_rms_intp[b2](chis)  * CAMB_factor
     
     
     # Integration over chi

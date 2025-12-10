@@ -59,7 +59,7 @@ class Redshift_Distributions:
                 sol = root_scalar(lambda z: self.cdf(z) - target, bracket=[0, self.zmax_dist], method='brentq')  #looking for the solution z to the equation cdf(z) - target = 0, within [0, zmax]
                 bin_edges.append(sol.root) #whatever that solution is gets appended as the new bin edge
                 
-            bin_edges.append(zmax) #we then close the last bin
+            bin_edges.append(zmax_dist) #we then close the last bin
     
             self.limits = np.array(bin_edges)
 
@@ -85,7 +85,7 @@ class Redshift_Distributions:
         
     def pb(self, z, b):
         """
-        This is the (normalised) redshift distribution of galaxies for each redshift bin.
+        This is the redshift distribution of galaxies for each redshift bin, normalised for that bin.
     
         z  : the redshift
         b  : the redshift bin (0 to Nbin_z)
@@ -95,11 +95,13 @@ class Redshift_Distributions:
         zzmax = self.limits[b + 1]
 
         if zzmin <= z < zzmax:
-            distrib = self.overall_distribution(z) 
+            normalisation_factor, _ = quad(self.overall_distribution, zzmin, zzmax) #the integral of the distribution in that bin
+            distrib = self.overall_distribution(z) / normalisation_factor #renormalising for that bin
+            
         else:
             distrib = 0
         
-        return distrib * np.heaviside(distrib, 0)
+        return distrib
 
     
     def find_bin(self, z):
@@ -121,6 +123,6 @@ class Redshift_Distributions:
             zzmin = self.limits[b]
             zzmax = self.limits[b + 1]
     
-            result, _ = quad(self.overall_distribution, zzmin, zzmax)
+            result, _ = quad(self.overall_distribution, zzmin, zzmax) #the fraction of the overall distribution between zzmin and zzmax
             
             return result * self.Nobjects

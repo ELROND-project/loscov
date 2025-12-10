@@ -1,0 +1,11 @@
+# Ignore these files and folders
+6x2pt-plotting/
+old/
+**/output*/
+output*/
+**/old*/
+*.log
+*.pdf
+*.pyc
+*.png
+__pycache__/

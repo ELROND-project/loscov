@@ -16,33 +16,31 @@ def bias(z):
     return 1.1*z**2.4/(1+z)+0.9
 
 #the "weight function" (the equivalent of W_mean in os and LOS)
-def W_d(chi, b):
+def Q_d(chi, b):
 
     redshift = background.redshift_at_comoving_radial_distance(chi)
 
-    prefactor =  (2/3) * np.sqrt(Omega_M*(1+redshift)**3+Omega_L)/((H0/(c*1e-3))*Omega_M*(1+redshift)) 
-
-    #technically there is a negative sign before the prefactor - however, this cancels out further down the line, meaning that we choose to omit it here rather than cancelling it later
+    prefactor =  (H0/(c*1e-3))*np.sqrt(Omega_M*(1+redshift)**3+Omega_L)
     
-    return prefactor * redshift_distributions['P'].pb(redshift, b) * bias(redshift) 
+    return prefactor * redshift_distributions['P'].pb(redshift, b) * bias(redshift) / chi
 
-def WW_d(chi, b):
+def QQ_d(chi, b):
     
-    return W_d(chi, b)**2   
+    return Q_d(chi, b)**2   
     
 
 ################################################ Getting cls #####################################################
 
 def get_cl_P(b1, b2, chimax, lmax, nl):
     """
-    This function generates Cls for the integrated matter correlation function
+    This function generates cls for the integrated matter correlation function
     It takes as argument the maximum multipole lmax.
     nl is the number of values to be computed.
-    b1 and b2 are the considered redshift bins.
-    returns an array of ls and the corresponding array of Cls
+    b1 and b2 are the considered redshift bins (0 to Nbinz_P).
+    returns an array of ls and the corresponding array of cls
     """
 
-    get_item('W_d_intp', 'WW_d_rms_intp') #these are just interpolated versions of the weight functions
+    get_item('Q_d_intp', 'QQ_d_rms_intp') #these are just interpolated versions of the weight functions
     
 	# Integration over chi
     lmin = 1
@@ -65,8 +63,11 @@ def get_cl_P(b1, b2, chimax, lmax, nl):
         chis = chis[1:-1]
         zs = zs[1:-1]
 
+        #CAMB correction
+        CAMB_factor = ((1+zs) * 1.5 * Omega_M * (H0/(c*1e-3))**2)**(-1)
+
 		# Everything in the integrand except Weyl power spectrum
-        kernel2 = W_d_intp[b1](chis) * W_d_intp[b2](chis) / chis**2
+        kernel2 = Q_d_intp[b1](chis) * Q_d_intp[b2](chis) * CAMB_factor**2 
 
         w = np.ones(chis.shape) #this is just used to set to zero k values out of range of interpolation
 

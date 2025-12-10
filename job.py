@@ -15,8 +15,9 @@ redshift_distributions = load_file(f"data/{suffix}/redshift_distributions")
 add_dict(angular_distributions)
 add_dict(redshift_distributions)
 
-from functions.angular_distributions import *
+from functions.angular_distributions import *   
 
+#covariance matrix functions
 from functions.covariance.LLLL import *
 from functions.covariance.LELE import *
 from functions.covariance.LLLE import *
@@ -46,9 +47,9 @@ def compute_covariance_piece(args):
     if b2 is not None:
         func_args.append(b2)
 
-    result = func(*func_args)
+    data, error = func(*func_args)
 
-    return (b1, b2, cov_matrix, cov_type, result)
+    return (b1, b2, cov_matrix, cov_type, data, error)
 
 # Read command-line arguments
 args = sys.argv[1:]
@@ -71,12 +72,11 @@ else:
 # Compute covariance piece
 result = compute_covariance_piece((b1, b2, cov_matrix, cov_type))
 
-matrices_folder = f'data/{suffix}/covariance'
+def save_data(b1, b2, cov_matrix, cov_type, data, folder):
+    
+    matrices_folder = f'data/{suffix}/{folder}'
 
-# Save the result immediately
-if result is not None:
-    b1, b2, cov_matrix, cov_type, data = result
-
+    #saving the data
     if data is not None:
         output_dir = f"{matrices_folder}/{cov_matrix}"
         os.makedirs(output_dir, exist_ok=True)
@@ -114,6 +114,15 @@ if result is not None:
                     elif cov_type == 'ncov':
                         save_pickle(np.transpose(data[0]), filename_transp, f"{cov_type} for b1={b1}, b2={b2}, cov_matrix={cov_matrix}")
                         save_pickle(np.transpose(data[1]), filename_transp_s, f"scov for b1={b1}, b2={b2}, cov_matrix={cov_matrix}")
+    
+
+
+# Save the result immediately
+if result is not None:
+    b1, b2, cov_matrix, cov_type, data, error = result
+
+    save_data(b1, b2, cov_matrix, cov_type, data, 'covariance')
+    save_data(b1, b2, cov_matrix, cov_type, error, 'errors')
                     
 
 # print(f"Finished task: {b1}, {b2}, {cov_matrix}, {cov_type}")

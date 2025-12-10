@@ -122,7 +122,7 @@ def add_dict(*objects):
             global_dict[name] = value  # Add it to global_dict
 
 def get_item(*names):
-    """Retrieves items from global_dict and defines them as global variables in the caller's module."""
+    """Retrieves items from global_dict and defines them as global variables."""
     frame = inspect.currentframe().f_back  # Get caller's frame
     caller_globals = frame.f_globals  # Access the caller's global namespace
     
@@ -192,7 +192,7 @@ def find_maximum(f, a, b):
 
 ###################################### Monte Carlo Integrator #######################################
 
-def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, confidence=confidence, num_batches = num_batches):
+def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, num_batches = num_batches):
     """
     Monte Carlo integration over a given domain with error estimation.
     
@@ -201,57 +201,77 @@ def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, confidence=confidenc
                        for integration over multiple dimensions.
     - bounds (list of tuples): Integration bounds [(a1, b1), (a2, b2), ...].
                                 For 1D, use [(a, b)].
-    - num_samples (int): Number of random samples to use to achieve a 10% error (adjusted via desired_precision)
-    - confidence (float): Confidence level for the error estimate (default is 0.95) (this is something ChatGPT
-                             recommended when I was figuring out how to estimate the error)
+    - num_samples (int): Total number of random samples to be used in the integration
+    - num_batches: The number of batches into which our samples are split, to reduce the memory burden
     
     Returns:
-    - tuple: (float, float) Estimated value of the integral and its error.
+    - tuple: (float, float) Estimated value of the integral and its error (or a list of tuples if multiple functions inputted)
     """
 
+    #our function is defined to handle multiple integrands evaluated with the same sample of points. 
+    #if a single function is provided, we redefine it as a single-item list
     if not isinstance(funcs, (list, tuple)):
         funcs = [funcs]
         single_function = True
     else:
         single_function = False
     
-    nsamp_use = int(num_samples)
-    batch_size = nsamp_use // num_batches
-    dim = len(bounds)
-    volumes = [b - a for a, b in bounds]
-    total_volume = np.prod(volumes)
-    rng = np.random.default_rng()
+    nsamp_use = int(num_samples) #the total number of samples in the integration
+    batch_size = nsamp_use // num_batches #the number of samples per batch (to reduce the memory burden)
+    dim = len(bounds) #the dimensions of the integral
+    volumes = [b - a for a, b in bounds] #the volume over which each variable in the integral is evaluated
+    total_volume = np.prod(volumes) #the total volume spanned by the integration bounds
+    rng = np.random.default_rng() #defining a random number generator
 
-    integral_estimates = [ [] for _ in funcs ]
-    variance_estimates = [ [] for _ in funcs ]
+    #define lists of lists, with as many lists as we have functions
+    batch_sums = [ [] for _ in funcs ]     # will store the sums of f from each batch
+    batch_sumsq = [ [] for _ in funcs ]    # will store the sums of f**2 from each batch
+    
+    batch_ns = []                          # will store the number of samples per batch 
+    #as currently written, every element in batch_ns will simply be equal to batch_size
 
+    #proceed batch by batch
     for _ in range(num_batches):
-        samples = np.array([rng.uniform(low=a, high=b, size=batch_size) for a, b in bounds])
-        for i, func in enumerate(funcs):
-            values = func(samples)
-            batch_integral = total_volume * np.mean(values)
-            integral_estimates[i].append(batch_integral)
-            batch_variance = np.var(values, ddof=1) if values.size > 1 else 0
-            variance_estimates[i].append(batch_variance)
 
-    final_integrals = []
-    errors = []
-    z = 1  # for 1-sigma error; adjust for other confidence levels if needed
+        #draw a random sample of N points on the integration domain (n=batch_size)
+        samples = np.array([rng.uniform(low=a, high=b, size=batch_size) for a, b in bounds])
+
+        #proceed one function at a time
+        for i, func in enumerate(funcs):
+            values = func(samples)  #evaluate the function at each of the N sampled points 
+            
+            batch_sums[i].append(np.sum(values)) #store the sum of each of the n function outputs
+            batch_sumsq[i].append(np.sum(values**2)) #store the sum of the square of these outputs
+        batch_ns.append(values.size)   #store n (should always be batch_size with the current structure)
+
+    final_integrals = [] #will store the final estimated integrals for each function
+    errors = [] #will store the errors in those estimates
 
     for i in range(len(funcs)):
-        mean_integral = np.mean(integral_estimates[i])
-        mean_variance = np.mean(variance_estimates[i]) / num_batches
-        std_error = total_volume * np.sqrt(mean_variance / nsamp_use)
-        error = z * std_error
+        N = int(np.sum(batch_ns))                        # total number of samples (might be less than nsamp, depending on the batching)
+        total_sum = float(np.sum(batch_sums[i]))         # sum of f over all samples
+        total_sumsq = float(np.sum(batch_sumsq[i]))      # sum of f^2 over all samples
+
+        mean_f = total_sum / N #the mean of the function across all points
+
+        if N > 1:
+            # sample variance
+            var_f = (total_sumsq - N * mean_f**2) / (N - 1) #the sample variance
+            var_f = max(var_f, 0.0) #in case of numerical errors leading to negative values
+        else:
+            var_f = 0.0 #no variance if we've just evaluated at a single point
+
+        mean_integral = total_volume * mean_f #the monte carlo integral estimate for this function
+        std_error = total_volume * np.sqrt(var_f / N) #the error in the monte carlo integral for this function
+
         final_integrals.append(mean_integral)
-        errors.append(error)
+        errors.append(std_error)
 
     if single_function:
         return final_integrals[0], errors[0]
         
     else:
         return final_integrals, errors
-
 
 def test_err(error, signal, name):
 

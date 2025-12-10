@@ -13,14 +13,14 @@ compute_correlations = False     #computes the correlation functions necessary f
 ##############################################################################################################
 
 sky_coverage = 15e3     #area of sky covered by the survey (deg^2)
-Nlens = 1e5             #number of lenses (expect 1e5)
+Nlens = 1e4             #number of lenses (expect 1e5)
 
 NGal = 2e9              #total number of galaxies (expect 2e9)
 
 ######################################## Redshift distribution ##########################################
 
 zmax_dist = 3           #the default maximum redshift being considered
-Nbin_z = 6              #the default number of redshift bins
+Nbin_z = 1              #the default number of redshift bins
 
 # redshift bin limits 
 # binscheme_E = [0,0.4676,0.7194,0.9625,1.3319,3]
@@ -97,7 +97,7 @@ if supply_binscheme:
 else:
 
     SNR_goal = 8
-    Nbin_max = 60          #this should dictate the maximum number of angular bins, but it won't be exact, and relies on an empirical relationship
+    Nbin_max = 20          #this should dictate the maximum number of angular bins, but it won't be exact, and relies on an empirical relationship
     SNR_min = 2.5
     theta_resolution = 1000  #the number of thetas in the linspace with which we obtain the max theta and calculate the "total SNR"
 
@@ -136,21 +136,22 @@ Omega_L = 1 - Omega_M
 zmax = 7     #the maximum redshift to which we compute the Weyl power spectrum
 kmax = 5e2 #(inverse Mpc) the maximum wavenumber, ie. the smallest spatial scales to which we determine the power spectrum
 extrap_kmax = 1e10 #the maximum k for extrapolation beyond kmax
+chimin = 1e-5
 
 ############################################ noise ###########################################################
 
 sigma_E = np.sqrt(2) * 0.3                                            #the noise from the galaxy shapes on cosmic shear
-sigma_L = 0.05                                                        #noise on the LOS shear (expect 0.05)  
+sigma_L = 0.1                                                         #noise on the LOS shear (expect 0.05)  
 
 ##################################### numerical stuff ########################################################
 
 max_cpus = 512
-nsamp = 1e7
+nsamp_string = '1e6'
+nsamp = int(float(nsamp_string))
 Csamp = nsamp*10        #default number of samples in the Monte Carlo integrator for triple cosmic integrals
 Nsamp = nsamp           #default number of samples in the Monte Carlo integrator for double noise/sparsity integrals
 num_batches = 1000     #should be > maxsamp * 373 / (ram per node)
 desired_error = 1       #percentage desired fractional error in integrals
-confidence = 0.95       #confidence level for the error estimate (not currently used)
 warning_level = 500     #level above which we print an integration error
 total_error_threshold = 0.2  #the threshold for the total error on a term to be too high and to print a warning
 
@@ -218,7 +219,7 @@ cov_types = ["ccov", "ncov"]
 
 ####################### the suffix defining the folder names ###############################################
 
-notes = 'nsamp=1e7_real' #anything particularly unique about a particular run (eg different redshift binning)
+notes = '' #anything particularly unique about a particular run (eg different redshift binning)
 correlation_notes = ''    #needed only to specify that a particular binscheme has been used
 
 def format_sci(n):
@@ -226,11 +227,11 @@ def format_sci(n):
 
 if supply_binscheme == True:
 
-    suffix = f'Nlens={format_sci(Nlens)}_sigL={sigma_L}_Nbin_z={Nbin_z}_Nbina={Nbina}_{notes}'
+    suffix = f'Nlens={format_sci(Nlens)}_sigL={sigma_L}_Nbin_z={Nbin_z}_Nbina={Nbina}_nsamp={nsamp_string}{notes}'
 
 if supply_binscheme == False:
 
-    suffix = f'Nlens={format_sci(Nlens)}_sigL={sigma_L}_Nbin_z={Nbin_z}_SNR_goal={SNR_goal}_Nbin_max={Nbin_max}_{notes}'
+    suffix = f'Nlens={format_sci(Nlens)}_sigL={sigma_L}_Nbin_z={Nbin_z}_SNR_goal={SNR_goal}_Nbin_max={Nbin_max}_nsamp={nsamp_string}{notes}'
     
 
 if not os.path.exists(f'correlations_NE={Nbinz_E}_NP={Nbinz_P}{correlation_notes}'):

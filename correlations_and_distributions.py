@@ -26,6 +26,9 @@ print(f"Finished 2. Redshift Distributions.")
 ################################################# 3. CORRELATIONS ############################################################
 ##############################################################################################################################
 
+if not os.path.exists(f"correlations_NE={Nbinz_E}_NP={Nbinz_P}{correlation_notes}"):
+    compute_correlations = True
+
 if compute_correlations:
 
     Thetamin = arcmintorad(Thetamin_arcmin)  #minimum theta from which we calculate correlation functions (in radians)
@@ -35,14 +38,14 @@ if compute_correlations:
     
     #reading in the forecasted sample of Euclid lenses
     Euclid_lenses = np.loadtxt('lenses_Euclid.txt')
-    zd = Euclid_lenses[:, 0]
-    zs = Euclid_lenses[:, 1]
+    zd_Euclid = Euclid_lenses[:, 0]
+    zs_Euclid = Euclid_lenses[:, 1]
     
     # convert into comoving distances (in Mpc)
-    chid = background.comoving_radial_distance(zd)
-    chis = background.comoving_radial_distance(zs)
+    chid_Euclid = background.comoving_radial_distance(zd_Euclid)
+    chis_Euclid = background.comoving_radial_distance(zs_Euclid)
     
-    chimax_L = max(chis)
+    chimax_L = max(chis_Euclid)
 
     chimax_E = background.comoving_radial_distance(zmax_E)
     chimax_P = background.comoving_radial_distance(zmax_P)
@@ -50,7 +53,7 @@ if compute_correlations:
     chimax = max(chimax_L,chimax_E,chimax_P) 
     
     #place these variables in the global dictionary
-    add_dict(chimax, chid, chis, zd, zs)
+    add_dict(chimax, chid_Euclid, chis_Euclid, zd_Euclid, zs_Euclid)
 
     ##############################################################################################################################
     ############################################ 3.2 AUTOCORRELATION FUNCTIONS ###################################################
@@ -66,19 +69,19 @@ if compute_correlations:
     ################################################# 3.2.1.1 weight functions ######################################################
     
     # Interpolate to get a fast 1D weight function
-    W_LOS_mean_vec = np.vectorize(W_LOS_mean)
-    chi = np.linspace(0, chimax, 100)
-    W = W_LOS_mean_vec(chi)
-    W_LOS_mean_intp = CubicSpline(chi, W)
+    Q_LOS_mean_vec = np.vectorize(Q_LOS_mean)
+    chi = np.linspace(chimin, chimax, 100)
+    Q = Q_LOS_mean_vec(chi)
+    Q_LOS_mean_intp = CubicSpline(chi, Q)
     
     # Interpolate to get a fast 1D weight function
-    WW_LOS_mean_vec = np.vectorize(WW_LOS_mean)
-    chi = np.linspace(0, chimax, 100)
-    WW = WW_LOS_mean_vec(chi)
-    WW_rms = np.sqrt(WW)
-    WW_LOS_rms_intp = CubicSpline(chi, WW_rms)
+    QQ_LOS_mean_vec = np.vectorize(QQ_LOS_mean)
+    chi = np.linspace(chimin, chimax, 100)
+    QQ = QQ_LOS_mean_vec(chi)
+    QQ_rms = np.sqrt(QQ)
+    QQ_LOS_rms_intp = CubicSpline(chi, QQ_rms)
     
-    add_dict(W_LOS_mean_intp, WW_LOS_rms_intp)
+    add_dict(Q_LOS_mean_intp, QQ_LOS_rms_intp)
     
     ######################################################## 3.2.1.2 cls ###########################################################
     
@@ -120,26 +123,26 @@ if compute_correlations:
     
     # Interpolate to get fast 1D weight functions
     
-    W_os_mean_intp = []
+    Q_os_mean_intp = []
     
     for b in range(Nbinz_E):
-        W_os_mean_vec = np.vectorize(W_os_mean)
-        chi = np.linspace(1e-3, chimax, 100)
-        W = W_os_mean_vec(chi, b)
-        W_os_mean_intp.append(CubicSpline(chi, W))
+        Q_os_mean_vec = np.vectorize(Q_os_mean)
+        chi = np.linspace(chimin, chimax, 100)
+        Q = Q_os_mean_vec(chi, b)
+        Q_os_mean_intp.append(CubicSpline(chi, Q))
     
     # Interpolate to get fast 1D weight functions
     
-    WW_os_rms_intp = []
+    QQ_os_rms_intp = []
     
     for b in range(Nbinz_E):
-        WW_os_mean_vec = np.vectorize(WW_os_mean)
-        chi = np.linspace(1e-5, chimax, 100)                    #maybe parameterise these?
-        WW = WW_os_mean_vec(chi, b)
-        WW_rms = np.sqrt(WW)                             #potential for confusion - WW_rms is actually order W
-        WW_os_rms_intp.append(CubicSpline(chi, WW_rms))
+        QQ_os_mean_vec = np.vectorize(QQ_os_mean)
+        chi = np.linspace(chimin, chimax, 100)                    #maybe parameterise these?
+        QQ = QQ_os_mean_vec(chi, b)
+        QQ_rms = np.sqrt(QQ)                             #potential for confusion - WW_rms is actually order W
+        QQ_os_rms_intp.append(CubicSpline(chi, QQ_rms))
     
-    add_dict(W_os_mean_intp, WW_os_rms_intp)
+    add_dict(Q_os_mean_intp, QQ_os_rms_intp)
     
     ######################################################## 3.2.2.2 cls ###########################################################
     
@@ -233,28 +236,28 @@ if compute_correlations:
     
     # Interpolate to get fast 1D weight functions
     
-    W_d_mean_intp = []
+    Q_d_mean_intp = []
     
     for b in range(Nbinz_P):
-        W_d_mean_vec = np.vectorize(W_d)
-        chi = np.linspace(1e-5, chimax, 100)
-        W = W_d_mean_vec(chi, b)
-        W_d_mean_intp.append(CubicSpline(chi, W))
+        Q_d_mean_vec = np.vectorize(Q_d)
+        chi = np.linspace(chimin, chimax, 100)
+        Q = Q_d_mean_vec(chi, b)
+        Q_d_mean_intp.append(CubicSpline(chi, Q))
     
     # Interpolate to get fast 1D weight functions
     
-    WW_d_rms_intp = []
+    QQ_d_rms_intp = []
     
     for b in range(Nbinz_P):
-        WW_d_mean_vec = np.vectorize(WW_d)
+        QQ_d_mean_vec = np.vectorize(QQ_d)
         chi = np.linspace(1e-5, chimax, 100)                    #maybe parameterise these?
-        WW = WW_d_mean_vec(chi, b)
-        WW_rms = np.sqrt(WW)
-        WW_d_rms_intp.append(CubicSpline(chi, WW_rms))
+        QQ = QQ_d_mean_vec(chi, b)
+        QQ_rms = np.sqrt(QQ)
+        QQ_d_rms_intp.append(CubicSpline(chi, QQ_rms))
 
-    W_d_intp = W_d_mean_intp  #redundant, fix this
-    add_dict(W_d_mean_intp, WW_d_rms_intp)
-    add_dict(W_d_intp)
+    Q_d_intp = Q_d_mean_intp  #redundant, fix this
+    add_dict(Q_d_mean_intp, QQ_d_rms_intp)
+    add_dict(Q_d_intp)
     
     ######################################################## 3.2.3.2 cls ###########################################################
     
@@ -499,12 +502,14 @@ if supply_binscheme:
         angular_distribution_LE_minus.append(ad_minus)
 
     ######## LP
+
+    angular_distribution_LP = []
     
     ad = Angular_Distributions(NGal, binscheme=binscheme_LP, Nbin_a=Nbina_LP, Thetamax=Thetamax_LP)
     
     for zbin in range(Nbinz_P):
         
-        angular_distribution_LP_plus.append(ad)
+        angular_distribution_LP.append(ad)
     
 else:
     get_item('LL_plus', 'LL_plus_primitive', 'LL_minus', 'LL_minus_primitive', 'LE_plus', 'LE_plus_primitive', 'LE_minus', 'LE_minus_primitive', 'LP', 'LP_primitive')

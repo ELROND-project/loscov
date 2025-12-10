@@ -22,7 +22,7 @@ def optimise_bins(correlation_function, correlation_type, antiderivative, b, SNR
     
     def snr(theta_1, theta_2):
 
-        numerator = antiderivative(theta_2) - antiderivative(theta_1)
+        numerator = np.abs(antiderivative(theta_2) - antiderivative(theta_1))
         denom_sq = theta_2**2 - theta_1**2
         
         if denom_sq <= 0:

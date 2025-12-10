@@ -10,14 +10,14 @@ from useful_functions import *
 
 def get_cls_mixed_LP(b, chimax, lmax, nl):
     """
-    This function generates Cls for convergence and shear
+    This function generates cls for convergence and shear
     It takes as argument the maximum multipole lmax.
     nl is the number of values to be computed.
 
-    b : redshift bin in question (0 to 4)
+    b : redshift bin in question (0 to Nbinz_P)
     """
 
-    get_item('W_LOS_mean_intp', 'W_d_intp')
+    get_item('Q_LOS_mean_intp', 'Q_d_intp')
     
     nz = 100 #number of elements for discrete integral along the los
     
@@ -30,12 +30,15 @@ def get_cls_mixed_LP(b, chimax, lmax, nl):
     dchis = (chis[2:]-chis[:-2])/2
     chis = chis[1:-1]
     zs = zs[1:-1]
+
+    #CAMB correction
+    CAMB_factor = ((1+zs) * 1.5 * Omega_M * (H0/(c*1e-3))**2)**(-1)
     
     # Lensing kernel (here LOS shear)
-    kernel2LOS = W_LOS_mean_intp(chis) / chis
+    kernel2LOS = Q_LOS_mean_intp(chis) * CAMB_factor
     
     # Lensing kernel (here position)
-    kernel2d = W_d_intp[b](chis) / chis
+    kernel2d = Q_d_intp[b](chis) * CAMB_factor
     
     # kernel2d = np.heaviside(kernel2d,0)*kernel2d
     # kernel2d = np.sqrt(kernel2d)
