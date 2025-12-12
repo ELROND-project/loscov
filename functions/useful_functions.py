@@ -236,9 +236,23 @@ def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, num_batches = num_ba
         #draw a random sample of N points on the integration domain (n=batch_size)
         samples = np.array([rng.uniform(low=a, high=b, size=batch_size) for a, b in bounds])
 
+        #we also want a subsample to define our rescaling
+        n_subsample = 100
+        subsamples = np.array([rng.uniform(low=a, high=b, size=n_subsample) for a, b in bounds])
+
         #proceed one function at a time
         for i, func in enumerate(funcs):
-            values = func(samples)  #evaluate the function at each of the N sampled points 
+            
+            f_subsample = func(subsamples)
+            typical_scale = np.median(np.abs(f_subsample))
+            print('typical_scale = ', typical_scale)
+            
+            if typical_scale == 0:
+                rescale_val = 1.0  # function is zero, no rescaling needed
+            else:
+                rescale_val = 1.0 / typical_scale
+            
+            values = func(samples) * rescale_val  #evaluate the function at each of the N sampled points 
             
             batch_sums[i].append(np.sum(values)) #store the sum of each of the n function outputs
             batch_sumsq[i].append(np.sum(values**2)) #store the sum of the square of these outputs
@@ -264,8 +278,8 @@ def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, num_batches = num_ba
         mean_integral = total_volume * mean_f #the monte carlo integral estimate for this function
         std_error = total_volume * np.sqrt(var_f / N) #the error in the monte carlo integral for this function
 
-        final_integrals.append(mean_integral)
-        errors.append(std_error)
+        final_integrals.append(mean_integral/rescale_val)
+        errors.append(std_error/rescale_val)
 
     if single_function:
         return final_integrals[0], errors[0]
