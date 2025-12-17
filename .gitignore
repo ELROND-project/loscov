@@ -6,3 +6,6 @@
 *.pyc
 *.png
 __pycache__/
+.ipynb_checkpoints
+functions/.ipynb_checkpoints
+.DS_Store
