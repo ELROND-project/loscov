@@ -20,7 +20,7 @@ NGal = 2e9              #total number of galaxies (expect 2e9)
 ######################################## Redshift distribution ##########################################
 
 zmax_dist = 3           #the default maximum redshift being considered
-Nbin_z = 1              #the default number of redshift bins
+Nbin_z = 6              #the default number of redshift bins
 
 # redshift bin limits 
 # binscheme_E = [0,0.4676,0.7194,0.9625,1.3319,3]
@@ -146,7 +146,7 @@ sigma_L = 0.05                                                         #noise on
 ##################################### numerical stuff ########################################################
 
 max_cpus = 512
-nsamp_string = '1e5'
+nsamp_string = '1e3'
 nsamp = int(float(nsamp_string))
 Csamp = nsamp*10        #default number of samples in the Monte Carlo integrator for triple cosmic integrals
 Nsamp = nsamp           #default number of samples in the Monte Carlo integrator for double noise/sparsity integrals

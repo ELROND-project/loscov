@@ -1,0 +1,12 @@
+0 0 LELP ccov
+0 0 LELP ncov
+0 0 LELE ccov
+0 0 LELE ncov
+0 0 LPLP ccov
+0 0 LPLP ncov
+0 LLLP ccov
+0 LLLP ncov
+0 LLLE ccov
+0 LLLE ncov
+LLLL ccov
+LLLL ncov
