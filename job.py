@@ -115,8 +115,6 @@ def save_data(b1, b2, cov_matrix, cov_type, data, folder):
                         save_pickle(np.transpose(data[0]), filename_transp, f"{cov_type} for b1={b1}, b2={b2}, cov_matrix={cov_matrix}")
                         save_pickle(np.transpose(data[1]), filename_transp_s, f"scov for b1={b1}, b2={b2}, cov_matrix={cov_matrix}")
     
-
-
 # Save the result immediately
 if result is not None:
     b1, b2, cov_matrix, cov_type, data, error = result

@@ -13,7 +13,7 @@ compute_correlations = False     #computes the correlation functions necessary f
 ##############################################################################################################
 
 sky_coverage = 15e3     #area of sky covered by the survey (deg^2)
-Nlens = 1e5             #number of lenses (expect 1e5)
+Nlens = 1e4             #number of lenses (expect 1e5)
 
 NGal = 2e9              #total number of galaxies (expect 2e9)
 
@@ -141,12 +141,12 @@ chimin = 1e-5
 ############################################ noise ###########################################################
 
 sigma_E = np.sqrt(2) * 0.3                                            #the noise from the galaxy shapes on cosmic shear
-sigma_L = 0.05                                                         #noise on the LOS shear (expect 0.05)  
+sigma_L = 0.1                                                         #noise on the LOS shear (expect 0.05)  
 
 ##################################### numerical stuff ########################################################
 
 max_cpus = 512
-nsamp_string = '1e5'
+nsamp_string = '1e6'
 nsamp = int(float(nsamp_string))
 Csamp = nsamp*10        #default number of samples in the Monte Carlo integrator for triple cosmic integrals
 Nsamp = nsamp           #default number of samples in the Monte Carlo integrator for double noise/sparsity integrals

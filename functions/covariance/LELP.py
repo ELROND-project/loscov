@@ -43,7 +43,7 @@ def generate_ccov_LELP(B, D):
         err_p = np.zeros((Nbin1, Nbin2))
         err_x = np.zeros((Nbin1, Nbin2))
         
-        # Define the integrands (compLExe from here)
+        # Define the integrands
         
         def integrand_p(params):
             

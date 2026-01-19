@@ -245,7 +245,6 @@ def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, num_batches = num_ba
             
             f_subsample = func(subsamples)
             typical_scale = np.median(np.abs(f_subsample))
-            print('typical_scale = ', typical_scale)
             
             if typical_scale == 0:
                 rescale_val = 1.0  # function is zero, no rescaling needed
