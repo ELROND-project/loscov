@@ -1,11 +1,18 @@
 # Ignore these files and folders
 6x2pt-plotting/
+old/
 **/output*/
+output*/
+**/old*/
 *.log
 *.pdf
 *.pyc
 *.png
 __pycache__/
 .ipynb_checkpoints
+.ipynb_checkpoints/
 functions/.ipynb_checkpoints
 .DS_Store
+tasks.txt
+submit_job.sh
+Figures/*
