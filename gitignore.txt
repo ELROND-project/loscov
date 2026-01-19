@@ -13,3 +13,4 @@ ipynb_checkpoints/
 data/old_data/
 tasks.txt
 submit_job.sh
+Figures/*
