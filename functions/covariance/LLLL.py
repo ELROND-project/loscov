@@ -10,7 +10,129 @@ from redshift_distributions import *
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from useful_functions import *
 
+from numba import njit
+
 get_item('LLp', 'LLx', 'angular_distributions', 'L0')
+
+
+################################################## JIT-compiled integrands ##############################################################
+
+@njit
+def _ccov_integrand_LLLL(params, r_grid, LLp_grid, LLx_grid):
+    """
+    JIT-compiled cosmic covariance integrand for LLLL.
+    Computes pp, px, xp, xx components with shared geometry calculation.
+    """
+    psi_j, psi_kl, r_j, r_kl, r_k = params
+
+    # Geometry (computed once for all 4 components)
+    y_kj = r_j * np.sin(psi_j)
+    x_kj = r_j * np.cos(psi_j) - r_k
+
+    r_kj = np.sqrt(y_kj**2 + x_kj**2)
+    psi_kj = np.arctan2(y_kj, x_kj)
+
+    r_jl = cos_law_side_jit(r_kl, r_kj, (psi_kl - psi_kj))
+    psi_jl = cos_law_angle_jit(r_kl, r_jl, r_kj) + psi_kl
+
+    # Pre-compute trig functions (used multiple times)
+    c2_j = cos2_jit(psi_j)
+    s2_j = sin2_jit(psi_j)
+    c2_kl = cos2_jit(psi_kl)
+    s2_kl = sin2_jit(psi_kl)
+
+    psi_jl_j = psi_jl - psi_j
+    psi_jl_kl = psi_jl - psi_kl
+    c2_jl_j = cos2_jit(psi_jl_j)
+    s2_jl_j = sin2_jit(psi_jl_j)
+    c2_jl_kl = cos2_jit(psi_jl_kl)
+    s2_jl_kl = sin2_jit(psi_jl_kl)
+
+    # Interpolate correlation function values (fast grid lookup)
+    LLp_rk = interp_jit(r_k, r_grid, LLp_grid)
+    LLx_rk = interp_jit(r_k, r_grid, LLx_grid)
+    LLp_rjl = interp_jit(r_jl, r_grid, LLp_grid)
+    LLx_rjl = interp_jit(r_jl, r_grid, LLx_grid)
+
+    # Common jacobian factor
+    jacobian = 2 * np.pi * r_k * r_j * r_kl
+
+    # pp component
+    f_pp = ((LLp_rk * c2_j * c2_kl + LLx_rk * s2_j * s2_kl)
+          * (LLp_rjl * c2_jl_j * c2_jl_kl + LLx_rjl * s2_jl_j * s2_jl_kl))
+
+    # px component
+    f_px = -((LLp_rk * c2_j * s2_kl - LLx_rk * s2_j * c2_kl)
+           * (LLp_rjl * c2_jl_j * s2_jl_kl - LLx_rjl * s2_jl_j * c2_jl_kl))
+
+    # xp component
+    f_xp = -((LLp_rk * s2_j * c2_kl - LLx_rk * c2_j * s2_kl)
+           * (LLp_rjl * s2_jl_j * c2_jl_kl - LLx_rjl * c2_jl_j * s2_jl_kl))
+
+    # xx component
+    f_xx = ((LLp_rk * s2_j * s2_kl + LLx_rk * c2_j * c2_kl)
+          * (LLp_rjl * s2_jl_j * s2_jl_kl + LLx_rjl * c2_jl_j * c2_jl_kl))
+
+    n = len(r_k)
+    result = np.empty((4, n))
+    result[0] = f_pp * jacobian
+    result[1] = f_px * jacobian
+    result[2] = f_xp * jacobian
+    result[3] = f_xx * jacobian
+    return result
+
+
+@njit
+def _ncov_integrand_LLLL(params, r_grid, LLp_grid, LLx_grid):
+    """
+    JIT-compiled noise covariance integrand for LLLL.
+    Computes pp, px, xp, xx components with shared geometry calculation.
+    """
+    r_j, r_l, psi_l = params
+
+    # Geometry (computed once for all 4 components)
+    y_jl = r_l * np.sin(psi_l)
+    x_jl = r_l * np.cos(psi_l) - r_j
+
+    r_jl = np.sqrt(y_jl**2 + x_jl**2)
+    psi_jl = np.arctan2(y_jl, x_jl)
+
+    # Pre-compute trig functions (used multiple times)
+    c2_l = cos2_jit(psi_l)
+    s2_l = sin2_jit(psi_l)
+    c2_jl = cos2_jit(psi_jl)
+    s2_jl = sin2_jit(psi_jl)
+
+    psi_jl_l = psi_jl - psi_l
+    c2_jl_l = cos2_jit(psi_jl_l)
+    s2_jl_l = sin2_jit(psi_jl_l)
+
+    # Interpolate correlation function values (fast grid lookup)
+    LLp_rjl = interp_jit(r_jl, r_grid, LLp_grid)
+    LLx_rjl = interp_jit(r_jl, r_grid, LLx_grid)
+
+    # Common jacobian factor
+    jacobian = 2 * np.pi * r_j * r_l
+
+    # pp component
+    f_pp = c2_l * (LLp_rjl * c2_jl * c2_jl_l + LLx_rjl * s2_jl * s2_jl_l)
+
+    # px component
+    f_px = -s2_l * (LLp_rjl * c2_jl * s2_jl_l - LLx_rjl * s2_jl * c2_jl_l)
+
+    # xp component
+    f_xp = s2_l * (LLp_rjl * s2_jl * c2_jl_l - LLx_rjl * c2_jl * s2_jl_l)
+
+    # xx component
+    f_xx = c2_l * (LLp_rjl * s2_jl * s2_jl_l + LLx_rjl * c2_jl * c2_jl_l)
+
+    n = len(r_j)
+    result = np.empty((4, n))
+    result[0] = f_pp * jacobian
+    result[1] = f_px * jacobian
+    result[2] = f_xp * jacobian
+    result[3] = f_xx * jacobian
+    return result
 
 ################################################## LLLL cosmic covariance ##############################################################
 
@@ -20,86 +142,39 @@ def generate_ccov_LLLL():
     of the LOS shear correlation functions.
     """
 
-    def generate_matrices(sign1, sign2):   
-    
+    # Pre-compute grids for fast JIT-compiled interpolation
+    r_grid, LLp_grid = spline_to_grid(LLp, 0, r2_max, n_points=2000)
+    _, LLx_grid = spline_to_grid(LLx, 0, r2_max, n_points=2000)
+
+    def generate_matrices(sign1, sign2):
+
         angular_distribution1 = angular_distributions[f'LL_{sign1}']
         angular_distribution2 = angular_distributions[f'LL_{sign2}']
-        
-        Nbin1       = angular_distribution1.Nbina      #the number of angular bins for LL 
+
+        Nbin1       = angular_distribution1.Nbina      #the number of angular bins for LL
         Omegas1     = angular_distribution1.Omegas     #\Omega_a in the math - the solid angle of bin a (in rad^2)
         rs1         = angular_distribution1.limits     #the angular bin limits for LL (in rad)
-        
-        Nbin2       = angular_distribution2.Nbina      #the number of angular bins for LL 
+
+        Nbin2       = angular_distribution2.Nbina      #the number of angular bins for LL
         Omegas2     = angular_distribution2.Omegas     #\Omega_a in the math - the solid angle of bin a (in rad^2)
         rs2         = angular_distribution2.limits     #the angular bin limits for LL (in rad)
-        
+
         # Initialise the blocks
         ccov_pp = np.zeros((Nbin1, Nbin2))
         ccov_px = np.zeros((Nbin1, Nbin2))
         ccov_xp = np.zeros((Nbin1, Nbin2))
         ccov_xx = np.zeros((Nbin1, Nbin2))
-        
+
         err_pp = np.zeros((Nbin1, Nbin2))
         err_px = np.zeros((Nbin1, Nbin2))
         err_xp = np.zeros((Nbin1, Nbin2))
         err_xx = np.zeros((Nbin1, Nbin2))
-        
-        # Define combined integrand that computes all 4 components with shared geometry
 
+        # Wrapper for JIT-compiled integrand
         def integrand_all(params):
-            """Compute pp, px, xp, xx components with shared geometry calculation."""
-
-            psi_j, psi_kl, r_j, r_kl, r_k = params
-
-            # Geometry (computed once for all 4 components)
-            y_kj = r_j * np.sin(psi_j)
-            x_kj = r_j * np.cos(psi_j) - r_k
-
-            r_kj = np.sqrt(y_kj**2 + x_kj**2)
-            psi_kj = np.arctan2(y_kj, x_kj)
-
-            r_jl = cos_law_side(r_kl, r_kj, (psi_kl - psi_kj))
-            psi_jl = cos_law_angle(r_kl, r_jl, r_kj) + psi_kl
-
-            # Pre-compute trig functions (used multiple times)
-            c2_j = cos2(psi_j)
-            s2_j = sin2(psi_j)
-            c2_kl = cos2(psi_kl)
-            s2_kl = sin2(psi_kl)
-
-            psi_jl_j = psi_jl - psi_j
-            psi_jl_kl = psi_jl - psi_kl
-            c2_jl_j = cos2(psi_jl_j)
-            s2_jl_j = sin2(psi_jl_j)
-            c2_jl_kl = cos2(psi_jl_kl)
-            s2_jl_kl = sin2(psi_jl_kl)
-
-            # Pre-compute correlation function values (expensive spline evaluations)
-            LLp_rk = LLp(r_k)
-            LLx_rk = LLx(r_k)
-            LLp_rjl = LLp(r_jl)
-            LLx_rjl = LLx(r_jl)
-
-            # Common jacobian factor
-            jacobian = 2 * np.pi * r_k * r_j * r_kl
-
-            # pp component
-            f_pp = ((LLp_rk * c2_j * c2_kl + LLx_rk * s2_j * s2_kl)
-                  * (LLp_rjl * c2_jl_j * c2_jl_kl + LLx_rjl * s2_jl_j * s2_jl_kl))
-
-            # px component
-            f_px = -((LLp_rk * c2_j * s2_kl - LLx_rk * s2_j * c2_kl)
-                   * (LLp_rjl * c2_jl_j * s2_jl_kl - LLx_rjl * s2_jl_j * c2_jl_kl))
-
-            # xp component
-            f_xp = -((LLp_rk * s2_j * c2_kl - LLx_rk * c2_j * s2_kl)
-                   * (LLp_rjl * s2_jl_j * c2_jl_kl - LLx_rjl * c2_jl_j * s2_jl_kl))
-
-            # xx component
-            f_xx = ((LLp_rk * s2_j * s2_kl + LLx_rk * c2_j * c2_kl)
-                  * (LLp_rjl * s2_jl_j * s2_jl_kl + LLx_rjl * c2_jl_j * c2_jl_kl))
-
-            return np.array([f_pp * jacobian, f_px * jacobian, f_xp * jacobian, f_xx * jacobian])
+            """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
+            result = _ccov_integrand_LLLL(params, r_grid, LLp_grid, LLx_grid)
+            return result
 
         def integral_bins(alpha, beta):
             """Compute all 4 component integrals with shared samples."""
@@ -169,89 +244,54 @@ def generate_ccov_LLLL():
 
 def generate_ncov_LLLL():
     """
-    Computes the contribution of noise and sparsity variance in the 
+    Computes the contribution of noise and sparsity variance in the
     covariance matrix of the LOS shear correlation functions.
     """
 
-    def generate_matrices(sign1, sign2):  
-    
+    # Pre-compute grids for fast JIT-compiled interpolation
+    r_grid, LLp_grid = spline_to_grid(LLp, 0, r2_max, n_points=2000)
+    _, LLx_grid = spline_to_grid(LLx, 0, r2_max, n_points=2000)
+
+    def generate_matrices(sign1, sign2):
+
         angular_distribution1 = angular_distributions[f'LL_{sign1}']
         angular_distribution2 = angular_distributions[f'LL_{sign2}']
-        
-        Nbin1       = angular_distribution1.Nbina      #the number of angular bins for LL (sign1) 
+
+        Nbin1       = angular_distribution1.Nbina      #the number of angular bins for LL (sign1)
         Omegas1     = angular_distribution1.Omegas     #\Omega_a in the math - the solid angle of bin a (in rad^2) (sign1)
         rs1         = angular_distribution1.limits     #the angular bin limits for LL (in rad) (sign1)
-        
+
         Nbin2       = angular_distribution2.Nbina      #the number of angular bins for LL (sign2)
         Omegas2     = angular_distribution2.Omegas     #\Omega_a in the math - the solid angle of bin a (in rad^2) (sign2)
         rs2         = angular_distribution2.limits     #the angular bin limits for LL (in rad) (sign2)
-        
+
         # Initialise the blocks
         ncov_pp = np.zeros((Nbin1, Nbin2))
         ncov_px = np.zeros((Nbin1, Nbin2))
         ncov_xp = np.zeros((Nbin1, Nbin2))
         ncov_xx = np.zeros((Nbin1, Nbin2))
-        
+
         nerr_pp = np.zeros((Nbin1, Nbin2))
         nerr_px = np.zeros((Nbin1, Nbin2))
         nerr_xp = np.zeros((Nbin1, Nbin2))
         nerr_xx = np.zeros((Nbin1, Nbin2))
-        
+
         # Initialise the blocks
         scov_pp = np.zeros((Nbin1, Nbin2))
         scov_px = np.zeros((Nbin1, Nbin2))
         scov_xp = np.zeros((Nbin1, Nbin2))
         scov_xx = np.zeros((Nbin1, Nbin2))
-        
+
         serr_pp = np.zeros((Nbin1, Nbin2))
         serr_px = np.zeros((Nbin1, Nbin2))
         serr_xp = np.zeros((Nbin1, Nbin2))
         serr_xx = np.zeros((Nbin1, Nbin2))
-        
-        # Define combined integrand that computes all 4 components with shared geometry
 
+        # Wrapper for JIT-compiled integrand
         def integrand_all(params):
-            """Compute pp, px, xp, xx components with shared geometry calculation."""
-
-            r_j, r_l, psi_l = params
-
-            # Geometry (computed once for all 4 components)
-            y_jl = r_l * np.sin(psi_l)
-            x_jl = r_l * np.cos(psi_l) - r_j
-
-            r_jl = np.sqrt(y_jl**2 + x_jl**2)
-            psi_jl = np.arctan2(y_jl, x_jl)
-
-            # Pre-compute trig functions (used multiple times)
-            c2_l = cos2(psi_l)
-            s2_l = sin2(psi_l)
-            c2_jl = cos2(psi_jl)
-            s2_jl = sin2(psi_jl)
-
-            psi_jl_l = psi_jl - psi_l
-            c2_jl_l = cos2(psi_jl_l)
-            s2_jl_l = sin2(psi_jl_l)
-
-            # Pre-compute correlation function values (expensive spline evaluations)
-            LLp_rjl = LLp(r_jl)
-            LLx_rjl = LLx(r_jl)
-
-            # Common jacobian factor
-            jacobian = 2 * np.pi * r_j * r_l
-
-            # pp component
-            f_pp = c2_l * (LLp_rjl * c2_jl * c2_jl_l + LLx_rjl * s2_jl * s2_jl_l)
-
-            # px component
-            f_px = -s2_l * (LLp_rjl * c2_jl * s2_jl_l - LLx_rjl * s2_jl * c2_jl_l)
-
-            # xp component
-            f_xp = s2_l * (LLp_rjl * s2_jl * c2_jl_l - LLx_rjl * c2_jl * s2_jl_l)
-
-            # xx component
-            f_xx = c2_l * (LLp_rjl * s2_jl * s2_jl_l + LLx_rjl * c2_jl * c2_jl_l)
-
-            return np.array([f_pp * jacobian, f_px * jacobian, f_xp * jacobian, f_xx * jacobian])
+            """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
+            result = _ncov_integrand_LLLL(params, r_grid, LLp_grid, LLx_grid)
+            return result
 
         def integral_bins(alpha, beta):
             """Compute all 4 component integrals with shared samples."""

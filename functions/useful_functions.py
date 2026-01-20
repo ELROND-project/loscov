@@ -5,6 +5,8 @@ import math
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from config import *
 
+from numba import njit, prange
+
 ################################ basic angular conversions and maths ####################################
 
 def radtoarcmin(angle_rad):
@@ -65,6 +67,87 @@ def sin2(x):
 
 def cos2(x):
     return np.cos(2*x)
+
+
+################################ JIT-compiled versions for fast Monte Carlo integration ####################################
+
+@njit
+def sin2_jit(x):
+    """JIT-compiled sin(2x)."""
+    return np.sin(2*x)
+
+@njit
+def cos2_jit(x):
+    """JIT-compiled cos(2x)."""
+    return np.cos(2*x)
+
+@njit
+def cos_law_side_jit(b, c, A):
+    """JIT-compiled law of cosines to find side a given sides b, c and angle A."""
+    return np.sqrt(b**2 + c**2 - 2*b*c*np.cos(A))
+
+@njit
+def cos_law_angle_jit(b, c, a):
+    """JIT-compiled law of cosines to find angle A given sides a, b, c."""
+    cos_angle = (b**2 + c**2 - a**2) / (2 * b * c)
+    # Clip to [-1, 1] to handle numerical precision issues
+    cos_angle = np.minimum(np.maximum(cos_angle, -1.0), 1.0)
+    return np.arccos(cos_angle)
+
+@njit
+def interp_jit(x, xp, fp):
+    """
+    JIT-compiled linear interpolation (similar to np.interp but works in nopython mode).
+    x: values at which to interpolate (1D array)
+    xp: x-coordinates of data points (1D array, must be increasing)
+    fp: y-coordinates of data points (1D array)
+    Returns: interpolated values at x
+    """
+    n = len(x)
+    result = np.empty(n)
+    nxp = len(xp)
+
+    for i in range(n):
+        xi = x[i]
+        # Handle out of bounds
+        if xi <= xp[0]:
+            result[i] = fp[0]
+        elif xi >= xp[nxp-1]:
+            result[i] = fp[nxp-1]
+        else:
+            # Binary search for the interval
+            lo = 0
+            hi = nxp - 1
+            while hi - lo > 1:
+                mid = (lo + hi) // 2
+                if xp[mid] <= xi:
+                    lo = mid
+                else:
+                    hi = mid
+            # Linear interpolation
+            t = (xi - xp[lo]) / (xp[hi] - xp[lo])
+            result[i] = fp[lo] + t * (fp[hi] - fp[lo])
+
+    return result
+
+
+def spline_to_grid(spline_func, r_min, r_max, n_points=1000):
+    """
+    Convert a spline function to a grid for fast JIT-compatible interpolation.
+
+    Parameters:
+        spline_func: A callable (e.g., CubicSpline) that evaluates the correlation function
+        r_min: Minimum radius
+        r_max: Maximum radius
+        n_points: Number of grid points
+
+    Returns:
+        r_grid: 1D array of r values
+        f_grid: 1D array of function values at r_grid
+    """
+    r_grid = np.linspace(r_min, r_max, n_points)
+    f_grid = spline_func(r_grid)
+    return r_grid, f_grid
 
 
 def annuli_intersection_area(i1, o1, i2, o2):
@@ -195,27 +278,29 @@ def find_maximum(f, a, b):
 def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, num_batches = num_batches):
     """
     Monte Carlo integration over a given domain with error estimation.
-    
+
     Parameters:
     - funcs (callable or list of callables): The function to integrate. NB it needs to accept an array as input
                        for integration over multiple dimensions.
+                       A function can also return a 2D array (n_outputs, n_samples) to compute multiple
+                       integrals with shared sample points.
     - bounds (list of tuples): Integration bounds [(a1, b1), (a2, b2), ...].
                                 For 1D, use [(a, b)].
     - num_samples (int): Total number of random samples to be used in the integration
     - num_batches: The number of batches into which our samples are split, to reduce the memory burden
-    
+
     Returns:
     - tuple: (float, float) Estimated value of the integral and its error (or a list of tuples if multiple functions inputted)
     """
 
-    #our function is defined to handle multiple integrands evaluated with the same sample of points. 
+    #our function is defined to handle multiple integrands evaluated with the same sample of points.
     #if a single function is provided, we redefine it as a single-item list
     if not isinstance(funcs, (list, tuple)):
         funcs = [funcs]
         single_function = True
     else:
         single_function = False
-    
+
     nsamp_use = int(num_samples) #the total number of samples in the integration
     batch_size = nsamp_use // num_batches #the number of samples per batch (to reduce the memory burden)
     dim = len(bounds) #the dimensions of the integral
@@ -223,66 +308,123 @@ def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, num_batches = num_ba
     total_volume = np.prod(volumes) #the total volume spanned by the integration bounds
     rng = np.random.default_rng() #defining a random number generator
 
-    #define lists of lists, with as many lists as we have functions
-    batch_sums = [ [] for _ in funcs ]     # will store the sums of f from each batch
-    batch_sumsq = [ [] for _ in funcs ]    # will store the sums of f**2 from each batch
-
-    batch_ns = []                          # will store the number of samples per batch
-    #as currently written, every element in batch_ns will simply be equal to batch_size
-
     #compute rescale values once at the start for each function (for numerical stability)
     n_subsample = 100
     subsamples = np.array([rng.uniform(low=a, high=b, size=n_subsample) for a, b in bounds])
+
+    # Detect if function returns multiple outputs (2D array)
+    test_output = funcs[0](subsamples)
+    if test_output.ndim == 2:
+        # Function returns (n_outputs, n_samples) - handle as multi-output
+        n_outputs = test_output.shape[0]
+        multi_output = True
+    else:
+        n_outputs = 1
+        multi_output = False
+
+    # Compute rescale values for each output of each function
     rescale_vals = []
     for func in funcs:
         f_subsample = func(subsamples)
-        typical_scale = np.median(np.abs(f_subsample))
-        if typical_scale == 0:
-            rescale_vals.append(1.0)  # function is zero, no rescaling needed
+        if multi_output:
+            # Compute separate rescale value for each output
+            func_rescales = []
+            for j in range(n_outputs):
+                typical_scale = np.median(np.abs(f_subsample[j]))
+                if typical_scale == 0:
+                    func_rescales.append(1.0)
+                else:
+                    func_rescales.append(1.0 / typical_scale)
+            rescale_vals.append(func_rescales)
         else:
-            rescale_vals.append(1.0 / typical_scale)
+            typical_scale = np.median(np.abs(f_subsample))
+            if typical_scale == 0:
+                rescale_vals.append(1.0)
+            else:
+                rescale_vals.append(1.0 / typical_scale)
+
+    # Initialize batch storage
+    if multi_output:
+        # For multi-output: batch_sums[func_idx][output_idx] = list of batch sums
+        batch_sums = [[[] for _ in range(n_outputs)] for _ in funcs]
+        batch_sumsq = [[[] for _ in range(n_outputs)] for _ in funcs]
+    else:
+        batch_sums = [[] for _ in funcs]
+        batch_sumsq = [[] for _ in funcs]
+
+    batch_ns = []
 
     #proceed batch by batch
     for _ in range(num_batches):
 
         #draw a random sample of N points on the integration domain (n=batch_size)
         samples = np.array([rng.uniform(low=a, high=b, size=batch_size) for a, b in bounds])
+        batch_ns.append(batch_size)
 
         #proceed one function at a time
         for i, func in enumerate(funcs):
+            values = func(samples)
 
-            values = func(samples) * rescale_vals[i]  #evaluate the function at each of the N sampled points
+            if multi_output:
+                # values has shape (n_outputs, batch_size)
+                for j in range(n_outputs):
+                    scaled_values = values[j] * rescale_vals[i][j]
+                    batch_sums[i][j].append(np.sum(scaled_values))
+                    batch_sumsq[i][j].append(np.sum(scaled_values**2))
+            else:
+                scaled_values = values * rescale_vals[i]
+                batch_sums[i].append(np.sum(scaled_values))
+                batch_sumsq[i].append(np.sum(scaled_values**2))
 
-            batch_sums[i].append(np.sum(values)) #store the sum of each of the n function outputs
-            batch_sumsq[i].append(np.sum(values**2)) #store the sum of the square of these outputs
-        batch_ns.append(values.size)   #store n (should always be batch_size with the current structure)
-
-    final_integrals = [] #will store the final estimated integrals for each function
-    errors = [] #will store the errors in those estimates
+    final_integrals = []
+    errors = []
 
     for i in range(len(funcs)):
-        N = int(np.sum(batch_ns))                        # total number of samples (might be less than nsamp, depending on the batching)
-        total_sum = float(np.sum(batch_sums[i]))         # sum of f over all samples
-        total_sumsq = float(np.sum(batch_sumsq[i]))      # sum of f^2 over all samples
+        if multi_output:
+            func_integrals = []
+            func_errors = []
+            for j in range(n_outputs):
+                N = int(np.sum(batch_ns))
+                total_sum = float(np.sum(batch_sums[i][j]))
+                total_sumsq = float(np.sum(batch_sumsq[i][j]))
 
-        mean_f = total_sum / N #the mean of the function across all points
+                mean_f = total_sum / N
 
-        if N > 1:
-            # sample variance
-            var_f = (total_sumsq - N * mean_f**2) / (N - 1) #the sample variance
-            var_f = max(var_f, 0.0) #in case of numerical errors leading to negative values
+                if N > 1:
+                    var_f = (total_sumsq - N * mean_f**2) / (N - 1)
+                    var_f = max(var_f, 0.0)
+                else:
+                    var_f = 0.0
+
+                mean_integral = total_volume * mean_f / rescale_vals[i][j]
+                std_error = total_volume * np.sqrt(var_f / N) / rescale_vals[i][j]
+
+                func_integrals.append(mean_integral)
+                func_errors.append(std_error)
+
+            final_integrals.append(func_integrals)
+            errors.append(func_errors)
         else:
-            var_f = 0.0 #no variance if we've just evaluated at a single point
+            N = int(np.sum(batch_ns))
+            total_sum = float(np.sum(batch_sums[i]))
+            total_sumsq = float(np.sum(batch_sumsq[i]))
 
-        mean_integral = total_volume * mean_f #the monte carlo integral estimate for this function
-        std_error = total_volume * np.sqrt(var_f / N) #the error in the monte carlo integral for this function
+            mean_f = total_sum / N
 
-        final_integrals.append(mean_integral/rescale_vals[i])
-        errors.append(std_error/rescale_vals[i])
+            if N > 1:
+                var_f = (total_sumsq - N * mean_f**2) / (N - 1)
+                var_f = max(var_f, 0.0)
+            else:
+                var_f = 0.0
+
+            mean_integral = total_volume * mean_f / rescale_vals[i]
+            std_error = total_volume * np.sqrt(var_f / N) / rescale_vals[i]
+
+            final_integrals.append(mean_integral)
+            errors.append(std_error)
 
     if single_function:
         return final_integrals[0], errors[0]
-        
     else:
         return final_integrals, errors
 

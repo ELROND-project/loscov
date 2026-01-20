@@ -10,7 +10,185 @@ from redshift_distributions import *
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from useful_functions import *
 
+from numba import njit
+
 get_item('LLp','LLx', 'LEp', 'LEx', 'EEp', 'EEx', 'angular_distributions', 'redshift_distributions', 'L0', 'E0')
+
+
+################################################## JIT-compiled integrands ##############################################################
+
+@njit
+def _ccov_integrand_LELE(params, r_grid, LLp_grid, LLx_grid, LEp_B_grid, LEx_B_grid,
+                          LEp_D_grid, LEx_D_grid, EEp_BD_grid, EEx_BD_grid):
+    """
+    JIT-compiled cosmic covariance integrand for LELE.
+    Computes pp, px, xp, xx components with shared geometry calculation.
+    """
+    psi_b, psi_kd, r_b, r_kd, r_k = params
+
+    # Geometry (computed once for all 4 components)
+    y_kb = r_b * np.sin(psi_b)
+    x_kb = r_b * np.cos(psi_b) - r_k
+
+    r_kb = np.sqrt(y_kb**2 + x_kb**2)
+    psi_kb = np.arctan2(y_kb, x_kb)
+
+    r_bd = cos_law_side_jit(r_kd, r_kb, (psi_kd - psi_kb))
+    psi_bd = cos_law_angle_jit(r_kd, r_bd, r_kb) + psi_kd
+
+    # Pre-compute trig functions (used multiple times)
+    c2_b = cos2_jit(psi_b)
+    s2_b = sin2_jit(psi_b)
+    c2_kd = cos2_jit(psi_kd)
+    s2_kd = sin2_jit(psi_kd)
+
+    psi_bd_b = psi_bd - psi_b
+    psi_bd_kd = psi_bd - psi_kd
+    c2_bd_b = cos2_jit(psi_bd_b)
+    s2_bd_b = sin2_jit(psi_bd_b)
+    c2_bd_kd = cos2_jit(psi_bd_kd)
+    s2_bd_kd = sin2_jit(psi_bd_kd)
+
+    # Interpolate correlation function values (fast grid lookup)
+    LLp_rk = interp_jit(r_k, r_grid, LLp_grid)
+    LLx_rk = interp_jit(r_k, r_grid, LLx_grid)
+    EEp_rbd = interp_jit(r_bd, r_grid, EEp_BD_grid)
+    EEx_rbd = interp_jit(r_bd, r_grid, EEx_BD_grid)
+    LEp_D_rk = interp_jit(r_k, r_grid, LEp_D_grid)
+    LEx_D_rk = interp_jit(r_k, r_grid, LEx_D_grid)
+    LEp_B_rbd = interp_jit(r_bd, r_grid, LEp_B_grid)
+    LEx_B_rbd = interp_jit(r_bd, r_grid, LEx_B_grid)
+
+    # Common jacobian factor
+    jacobian = 2 * np.pi * r_k * r_b * r_kd
+
+    # First factors for each component (LL and LE at r_k)
+    LL_pp = LLp_rk * c2_b * c2_kd + LLx_rk * s2_b * s2_kd
+    LL_px = LLp_rk * c2_b * s2_kd - LLx_rk * s2_b * c2_kd
+    LL_xp = LLp_rk * s2_b * c2_kd - LLx_rk * c2_b * s2_kd
+    LL_xx = LLp_rk * s2_b * s2_kd + LLx_rk * c2_b * c2_kd
+
+    LE_D_pp = LEp_D_rk * c2_b * c2_kd + LEx_D_rk * s2_b * s2_kd
+    LE_D_px = LEp_D_rk * c2_b * s2_kd - LEx_D_rk * s2_b * c2_kd
+    LE_D_xp = LEp_D_rk * s2_b * c2_kd - LEx_D_rk * c2_b * s2_kd
+    LE_D_xx = LEp_D_rk * s2_b * s2_kd + LEx_D_rk * c2_b * c2_kd
+
+    # Second factors for each component (EE and LE at r_bd)
+    EE_pp = EEp_rbd * c2_bd_b * c2_bd_kd + EEx_rbd * s2_bd_b * s2_bd_kd
+    EE_px = EEp_rbd * c2_bd_b * s2_bd_kd - EEx_rbd * s2_bd_b * c2_bd_kd
+    EE_xp = EEp_rbd * s2_bd_b * c2_bd_kd - EEx_rbd * c2_bd_b * s2_bd_kd
+    EE_xx = EEp_rbd * s2_bd_b * s2_bd_kd + EEx_rbd * c2_bd_b * c2_bd_kd
+
+    LE_B_pp = LEp_B_rbd * c2_bd_b * c2_bd_kd + LEx_B_rbd * s2_bd_b * s2_bd_kd
+    LE_B_px = LEp_B_rbd * c2_bd_b * s2_bd_kd - LEx_B_rbd * s2_bd_b * c2_bd_kd
+    LE_B_xp = LEp_B_rbd * s2_bd_b * c2_bd_kd - LEx_B_rbd * c2_bd_b * s2_bd_kd
+    LE_B_xx = LEp_B_rbd * s2_bd_b * s2_bd_kd + LEx_B_rbd * c2_bd_b * c2_bd_kd
+
+    # Combine components
+    f_pp = (LL_pp * EE_pp + LE_D_pp * LE_B_pp)
+    f_px = -(LL_px * EE_px + LE_D_px * LE_B_px)
+    f_xp = -(LL_xp * EE_xp + LE_D_xp * LE_B_xp)
+    f_xx = (LL_xx * EE_xx + LE_D_xx * LE_B_xx)
+
+    n = len(r_k)
+    result = np.empty((4, n))
+    result[0] = f_pp * jacobian
+    result[1] = f_px * jacobian
+    result[2] = f_xp * jacobian
+    result[3] = f_xx * jacobian
+    return result
+
+
+@njit
+def _ncov_integrand_LELE_L(params, r_grid, EEp_BD_grid, EEx_BD_grid):
+    """
+    JIT-compiled noise covariance integrand for LELE (L terms using EE correlations).
+    """
+    r_b, r_d, psi_d = params
+
+    # Geometry
+    y_bd = r_d * np.sin(psi_d)
+    x_bd = r_d * np.cos(psi_d) - r_b
+
+    r_bd = np.sqrt(y_bd**2 + x_bd**2)
+    psi_bd = np.arctan2(y_bd, x_bd)
+
+    # Pre-compute trig functions
+    c2_d = cos2_jit(psi_d)
+    s2_d = sin2_jit(psi_d)
+    c2_bd = cos2_jit(psi_bd)
+    s2_bd = sin2_jit(psi_bd)
+
+    psi_bd_d = psi_bd - psi_d
+    c2_bd_d = cos2_jit(psi_bd_d)
+    s2_bd_d = sin2_jit(psi_bd_d)
+
+    # Interpolate correlation function values
+    EEp_rbd = interp_jit(r_bd, r_grid, EEp_BD_grid)
+    EEx_rbd = interp_jit(r_bd, r_grid, EEx_BD_grid)
+
+    # Jacobian (factor of 2 absorbed into 1/2 prefactor)
+    jacobian = np.pi * r_b * r_d
+
+    # Components using EE correlations
+    f_pp = c2_d * (EEp_rbd * c2_bd * c2_bd_d + EEx_rbd * s2_bd * s2_bd_d)
+    f_px = -s2_d * (EEp_rbd * c2_bd * s2_bd_d - EEx_rbd * s2_bd * c2_bd_d)
+    f_xp = s2_d * (EEp_rbd * s2_bd * c2_bd_d - EEx_rbd * c2_bd * s2_bd_d)
+    f_xx = c2_d * (EEp_rbd * s2_bd * s2_bd_d + EEx_rbd * c2_bd * c2_bd_d)
+
+    n = len(r_b)
+    result = np.empty((4, n))
+    result[0] = f_pp * jacobian
+    result[1] = f_px * jacobian
+    result[2] = f_xp * jacobian
+    result[3] = f_xx * jacobian
+    return result
+
+
+@njit
+def _ncov_integrand_LELE_E(params, r_grid, LLp_grid, LLx_grid):
+    """
+    JIT-compiled noise covariance integrand for LELE (E terms using LL correlations, when B==D).
+    """
+    r_b, r_d, psi_d = params
+
+    # Geometry
+    y_bd = r_d * np.sin(psi_d)
+    x_bd = r_d * np.cos(psi_d) - r_b
+
+    r_bd = np.sqrt(y_bd**2 + x_bd**2)
+    psi_bd = np.arctan2(y_bd, x_bd)
+
+    # Pre-compute trig functions
+    c2_d = cos2_jit(psi_d)
+    s2_d = sin2_jit(psi_d)
+    c2_bd = cos2_jit(psi_bd)
+    s2_bd = sin2_jit(psi_bd)
+
+    psi_bd_d = psi_bd - psi_d
+    c2_bd_d = cos2_jit(psi_bd_d)
+    s2_bd_d = sin2_jit(psi_bd_d)
+
+    # Interpolate correlation function values
+    LLp_rbd = interp_jit(r_bd, r_grid, LLp_grid)
+    LLx_rbd = interp_jit(r_bd, r_grid, LLx_grid)
+
+    # Jacobian
+    jacobian = np.pi * r_b * r_d
+
+    # Components using LL correlations
+    f_pp = c2_d * (LLp_rbd * c2_bd * c2_bd_d + LLx_rbd * s2_bd * s2_bd_d)
+    f_px = -s2_d * (LLp_rbd * c2_bd * s2_bd_d - LLx_rbd * s2_bd * c2_bd_d)
+    f_xp = s2_d * (LLp_rbd * s2_bd * c2_bd_d - LLx_rbd * c2_bd * s2_bd_d)
+    f_xx = c2_d * (LLp_rbd * s2_bd * s2_bd_d + LLx_rbd * c2_bd * c2_bd_d)
+
+    n = len(r_b)
+    result = np.empty((4, n))
+    result[0] = f_pp * jacobian
+    result[1] = f_px * jacobian
+    result[2] = f_xp * jacobian
+    result[3] = f_xx * jacobian
+    return result
 
 ################################################## LELE cosmic covariance ##############################################################
 
@@ -23,102 +201,46 @@ def generate_ccov_LELE(B, D):
     D             : the galaxy redshift bin D (0 to Nbinz_E)
     """
 
-    def generate_matrices(sign1, sign2):    
+    # Pre-compute grids for fast JIT-compiled interpolation (done once for all sign combinations)
+    n_grid_points = 2000
+    r_grid, LLp_grid = spline_to_grid(LLp, 0, r2_max, n_points=n_grid_points)
+    _, LLx_grid = spline_to_grid(LLx, 0, r2_max, n_points=n_grid_points)
+    _, LEp_B_grid = spline_to_grid(LEp[B], 0, r2_max, n_points=n_grid_points)
+    _, LEx_B_grid = spline_to_grid(LEx[B], 0, r2_max, n_points=n_grid_points)
+    _, LEp_D_grid = spline_to_grid(LEp[D], 0, r2_max, n_points=n_grid_points)
+    _, LEx_D_grid = spline_to_grid(LEx[D], 0, r2_max, n_points=n_grid_points)
+    _, EEp_BD_grid = spline_to_grid(EEp[B][D], 0, r2_max, n_points=n_grid_points)
+    _, EEx_BD_grid = spline_to_grid(EEx[B][D], 0, r2_max, n_points=n_grid_points)
+
+    def generate_matrices(sign1, sign2):
 
         angular_distribution1 = angular_distributions[f'LE_{sign1}'][B]
         angular_distribution2 = angular_distributions[f'LE_{sign2}'][D]
-        
-        Nbin1       = angular_distribution1.Nbina      #the number of angular bins for LE 
+
+        Nbin1       = angular_distribution1.Nbina      #the number of angular bins for LE
         Omegas1     = angular_distribution1.Omegas     #\Omega_a in the math - the solid angle of bin a (in rad^2)
         rs1         = angular_distribution1.limits     #the angular bin limits for LE (in rad)
-        
-        Nbin2       = angular_distribution2.Nbina      #the number of angular bins for LE 
+
+        Nbin2       = angular_distribution2.Nbina      #the number of angular bins for LE
         Omegas2     = angular_distribution2.Omegas     #\Omega_a in the math - the solid angle of bin a (in rad^2)
         rs2         = angular_distribution2.limits     #the angular bin limits for LE (in rad)
-        
+
         # Initialise the blocks
         ccov_pp = np.zeros((Nbin1, Nbin2))
         ccov_px = np.zeros((Nbin1, Nbin2))
         ccov_xp = np.zeros((Nbin1, Nbin2))
-        ccov_xx = np.zeros((Nbin1, Nbin2))    
-        
+        ccov_xx = np.zeros((Nbin1, Nbin2))
+
         err_pp = np.zeros((Nbin1, Nbin2))
         err_px = np.zeros((Nbin1, Nbin2))
         err_xp = np.zeros((Nbin1, Nbin2))
-        err_xx = np.zeros((Nbin1, Nbin2))    
-    
-        # Define combined integrand that computes all 4 components with shared geometry
+        err_xx = np.zeros((Nbin1, Nbin2))
 
+        # Wrapper for JIT-compiled integrand
         def integrand_all(params):
-            """Compute pp, px, xp, xx components with shared geometry calculation."""
-
-            psi_b, psi_kd, r_b, r_kd, r_k = params
-
-            # Geometry (computed once for all 4 components)
-            y_kb = r_b * np.sin(psi_b)
-            x_kb = r_b * np.cos(psi_b) - r_k
-
-            r_kb = np.sqrt(y_kb**2 + x_kb**2)
-            psi_kb = np.arctan2(y_kb, x_kb)
-
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd - psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
-
-            # Pre-compute trig functions (used multiple times)
-            c2_b = cos2(psi_b)
-            s2_b = sin2(psi_b)
-            c2_kd = cos2(psi_kd)
-            s2_kd = sin2(psi_kd)
-
-            psi_bd_b = psi_bd - psi_b
-            psi_bd_kd = psi_bd - psi_kd
-            c2_bd_b = cos2(psi_bd_b)
-            s2_bd_b = sin2(psi_bd_b)
-            c2_bd_kd = cos2(psi_bd_kd)
-            s2_bd_kd = sin2(psi_bd_kd)
-
-            # Pre-compute correlation function values (expensive spline evaluations)
-            LLp_rk = LLp(r_k)
-            LLx_rk = LLx(r_k)
-            EEp_rbd = EEp[B][D](r_bd)
-            EEx_rbd = EEx[B][D](r_bd)
-            LEp_D_rk = LEp[D](r_k)
-            LEx_D_rk = LEx[D](r_k)
-            LEp_B_rbd = LEp[B](r_bd)
-            LEx_B_rbd = LEx[B](r_bd)
-
-            # Common jacobian factor
-            jacobian = 2 * np.pi * r_k * r_b * r_kd
-
-            # First factors for each component (LL and LE at r_k)
-            LL_pp = LLp_rk * c2_b * c2_kd + LLx_rk * s2_b * s2_kd
-            LL_px = LLp_rk * c2_b * s2_kd - LLx_rk * s2_b * c2_kd
-            LL_xp = LLp_rk * s2_b * c2_kd - LLx_rk * c2_b * s2_kd
-            LL_xx = LLp_rk * s2_b * s2_kd + LLx_rk * c2_b * c2_kd
-
-            LE_D_pp = LEp_D_rk * c2_b * c2_kd + LEx_D_rk * s2_b * s2_kd
-            LE_D_px = LEp_D_rk * c2_b * s2_kd - LEx_D_rk * s2_b * c2_kd
-            LE_D_xp = LEp_D_rk * s2_b * c2_kd - LEx_D_rk * c2_b * s2_kd
-            LE_D_xx = LEp_D_rk * s2_b * s2_kd + LEx_D_rk * c2_b * c2_kd
-
-            # Second factors for each component (EE and LE at r_bd)
-            EE_pp = EEp_rbd * c2_bd_b * c2_bd_kd + EEx_rbd * s2_bd_b * s2_bd_kd
-            EE_px = EEp_rbd * c2_bd_b * s2_bd_kd - EEx_rbd * s2_bd_b * c2_bd_kd
-            EE_xp = EEp_rbd * s2_bd_b * c2_bd_kd - EEx_rbd * c2_bd_b * s2_bd_kd
-            EE_xx = EEp_rbd * s2_bd_b * s2_bd_kd + EEx_rbd * c2_bd_b * c2_bd_kd
-
-            LE_B_pp = LEp_B_rbd * c2_bd_b * c2_bd_kd + LEx_B_rbd * s2_bd_b * s2_bd_kd
-            LE_B_px = LEp_B_rbd * c2_bd_b * s2_bd_kd - LEx_B_rbd * s2_bd_b * c2_bd_kd
-            LE_B_xp = LEp_B_rbd * s2_bd_b * c2_bd_kd - LEx_B_rbd * c2_bd_b * s2_bd_kd
-            LE_B_xx = LEp_B_rbd * s2_bd_b * s2_bd_kd + LEx_B_rbd * c2_bd_b * c2_bd_kd
-
-            # Combine components
-            f_pp = (LL_pp * EE_pp + LE_D_pp * LE_B_pp)
-            f_px = -(LL_px * EE_px + LE_D_px * LE_B_px)
-            f_xp = -(LL_xp * EE_xp + LE_D_xp * LE_B_xp)
-            f_xx = (LL_xx * EE_xx + LE_D_xx * LE_B_xx)
-
-            return np.array([f_pp * jacobian, f_px * jacobian, f_xp * jacobian, f_xx * jacobian])
+            """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
+            return _ccov_integrand_LELE(params, r_grid, LLp_grid, LLx_grid, LEp_B_grid, LEx_B_grid,
+                                        LEp_D_grid, LEx_D_grid, EEp_BD_grid, EEx_BD_grid)
 
         def integral_bins(alpha, beta):
             """Compute all 4 component integrals with shared samples."""
@@ -190,124 +312,70 @@ def generate_ncov_LELE(B, D):
     """
     Computes the contribution of noise and sparsity variance in the covariance matrix
     of the LOS shear - galaxy shape correlation functions.
-    
+
     B             : the galaxy redshift bin D (0 to Nbinz_E)
     D             : the galaxy redshift bin D (0 to Nbinz_E)
     """
 
-    def generate_matrices(sign1, sign2):  
-    
+    # Pre-compute grids for fast JIT-compiled interpolation (done once for all sign combinations)
+    n_grid_points = 2000
+    r_grid, EEp_BD_grid = spline_to_grid(EEp[B][D], 0, r2_max, n_points=n_grid_points)
+    _, EEx_BD_grid = spline_to_grid(EEx[B][D], 0, r2_max, n_points=n_grid_points)
+    # LLp and LLx grids only needed when B == D
+    if B == D:
+        _, LLp_grid = spline_to_grid(LLp, 0, r2_max, n_points=n_grid_points)
+        _, LLx_grid = spline_to_grid(LLx, 0, r2_max, n_points=n_grid_points)
+    else:
+        LLp_grid = None
+        LLx_grid = None
+
+    def generate_matrices(sign1, sign2):
+
         angular_distribution1 = angular_distributions[f'LE_{sign1}'][B]
         angular_distribution2 = angular_distributions[f'LE_{sign2}'][D]
-        
-        Nbin1       = angular_distribution1.Nbina      #the number of angular bins for LE (sign1) 
+
+        Nbin1       = angular_distribution1.Nbina      #the number of angular bins for LE (sign1)
         Omegas1     = angular_distribution1.Omegas     #\Omega_a in the math - the solid angle of bin a (in rad^2) (sign1)
         rs1         = angular_distribution1.limits     #the angular bin limits for LE (in rad) (sign1)
-        
+
         Nbin2       = angular_distribution2.Nbina      #the number of angular bins for LE (sign2)
         Omegas2     = angular_distribution2.Omegas     #\Omega_a in the math - the solid angle of bin a (in rad^2) (sign2)
         rs2         = angular_distribution2.limits     #the angular bin limits for LE (in rad) (sign2)
-        
+
         redshift_distribution = redshift_distributions['E']
-        
+
         G_B    = redshift_distribution.get_ngal(B)         #G_B in the math - the number of galaxies in redshift bin B
-        
+
         # Initialise the blocks
         ncov_pp = np.zeros((Nbin1, Nbin2))
         ncov_px = np.zeros((Nbin1, Nbin2))
         ncov_xp = np.zeros((Nbin1, Nbin2))
         ncov_xx = np.zeros((Nbin1, Nbin2))
-        
+
         nerr_pp = np.zeros((Nbin1, Nbin2))
         nerr_px = np.zeros((Nbin1, Nbin2))
         nerr_xp = np.zeros((Nbin1, Nbin2))
         nerr_xx = np.zeros((Nbin1, Nbin2))
-        
+
         scov_pp = np.zeros((Nbin1, Nbin2))
         scov_px = np.zeros((Nbin1, Nbin2))
         scov_xp = np.zeros((Nbin1, Nbin2))
         scov_xx = np.zeros((Nbin1, Nbin2))
-        
+
         serr_pp = np.zeros((Nbin1, Nbin2))
         serr_px = np.zeros((Nbin1, Nbin2))
         serr_xp = np.zeros((Nbin1, Nbin2))
         serr_xx = np.zeros((Nbin1, Nbin2))
-        
-        # Define combined integrands for L terms (always used) and E terms (used when B==D)
 
+        # Wrapper for JIT-compiled L integrand
         def integrand_all_L(params):
-            """Compute pp, px, xp, xx L-components with shared geometry."""
+            """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
+            return _ncov_integrand_LELE_L(params, r_grid, EEp_BD_grid, EEx_BD_grid)
 
-            r_b, r_d, psi_d = params
-
-            # Geometry (computed once)
-            y_bd = r_d * np.sin(psi_d)
-            x_bd = r_d * np.cos(psi_d) - r_b
-
-            r_bd = np.sqrt(y_bd**2 + x_bd**2)
-            psi_bd = np.arctan2(y_bd, x_bd)
-
-            # Pre-compute trig functions
-            c2_d = cos2(psi_d)
-            s2_d = sin2(psi_d)
-            c2_bd = cos2(psi_bd)
-            s2_bd = sin2(psi_bd)
-
-            psi_bd_d = psi_bd - psi_d
-            c2_bd_d = cos2(psi_bd_d)
-            s2_bd_d = sin2(psi_bd_d)
-
-            # Pre-compute correlation function values
-            EEp_rbd = EEp[B][D](r_bd)
-            EEx_rbd = EEx[B][D](r_bd)
-
-            # Common jacobian factor (factor of 2 absorbed into 1/2 prefactor)
-            jacobian = np.pi * r_b * r_d
-
-            # Components using EE correlations
-            f_pp = c2_d * (EEp_rbd * c2_bd * c2_bd_d + EEx_rbd * s2_bd * s2_bd_d)
-            f_px = -s2_d * (EEp_rbd * c2_bd * s2_bd_d - EEx_rbd * s2_bd * c2_bd_d)
-            f_xp = s2_d * (EEp_rbd * s2_bd * c2_bd_d - EEx_rbd * c2_bd * s2_bd_d)
-            f_xx = c2_d * (EEp_rbd * s2_bd * s2_bd_d + EEx_rbd * c2_bd * c2_bd_d)
-
-            return np.array([f_pp * jacobian, f_px * jacobian, f_xp * jacobian, f_xx * jacobian])
-
+        # Wrapper for JIT-compiled E integrand (only used when B == D)
         def integrand_all_E(params):
-            """Compute pp, px, xp, xx E-components with shared geometry (used when B==D)."""
-
-            r_b, r_d, psi_d = params
-
-            # Geometry (computed once)
-            y_bd = r_d * np.sin(psi_d)
-            x_bd = r_d * np.cos(psi_d) - r_b
-
-            r_bd = np.sqrt(y_bd**2 + x_bd**2)
-            psi_bd = np.arctan2(y_bd, x_bd)
-
-            # Pre-compute trig functions
-            c2_d = cos2(psi_d)
-            s2_d = sin2(psi_d)
-            c2_bd = cos2(psi_bd)
-            s2_bd = sin2(psi_bd)
-
-            psi_bd_d = psi_bd - psi_d
-            c2_bd_d = cos2(psi_bd_d)
-            s2_bd_d = sin2(psi_bd_d)
-
-            # Pre-compute correlation function values
-            LLp_rbd = LLp(r_bd)
-            LLx_rbd = LLx(r_bd)
-
-            # Common jacobian factor
-            jacobian = np.pi * r_b * r_d
-
-            # Components using LL correlations
-            f_pp = c2_d * (LLp_rbd * c2_bd * c2_bd_d + LLx_rbd * s2_bd * s2_bd_d)
-            f_px = -s2_d * (LLp_rbd * c2_bd * s2_bd_d - LLx_rbd * s2_bd * c2_bd_d)
-            f_xp = s2_d * (LLp_rbd * s2_bd * c2_bd_d - LLx_rbd * c2_bd * s2_bd_d)
-            f_xx = c2_d * (LLp_rbd * s2_bd * s2_bd_d + LLx_rbd * c2_bd * c2_bd_d)
-
-            return np.array([f_pp * jacobian, f_px * jacobian, f_xp * jacobian, f_xx * jacobian])
+            """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
+            return _ncov_integrand_LELE_E(params, r_grid, LLp_grid, LLx_grid)
 
         def integral_bins(alpha, beta):
             """Compute all component integrals with shared samples."""
