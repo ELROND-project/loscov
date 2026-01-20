@@ -123,80 +123,116 @@ def generate_ncov_LPLP(B, D):
     nerr = np.zeros((Nbin1, Nbin2))
     serr = np.zeros((Nbin1, Nbin2))
     
-    # Define the integrands
-    
-    def integrand_P(params):
-        
-        r_i, r_k, psi_k = params
-    
-        y_ik = r_k*np.sin(psi_k)
-        x_ik = r_k*np.cos(psi_k) - r_i
-        
-        r_ik = np.sqrt( y_ik**2 + x_ik**2 ) 
-        psi_ik = np.arctan2(y_ik, x_ik)
-        
-        f = ( LLp(r_ik) * cos2(psi_ik) * cos2(psi_ik - psi_k) 
-                             + LLx(r_ik) * sin2(psi_ik) * sin2(psi_ik - psi_k) )
-
-        f *= 2 * np.pi * r_i * r_k
-                              
-        return f
-    
-    def integrand_L(params):
-        
-        r_i, r_k, psi_k = params
-    
-        y_ik = r_k*np.sin(psi_k)
-        x_ik = r_k*np.cos(psi_k) - r_i
-        
-        r_ik = np.sqrt( y_ik**2 + x_ik**2 ) 
-        psi_ik = np.arctan2(y_ik, x_ik)
-        
-        f = (1/2) * PP[B][D](r_ik) * cos2(psi_k)
-
-        f *= 2 * np.pi * r_i * r_k
-                              
-        return f
-    
-    def integral_bins(integrand, alpha, beta):
-        
-        ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
-        
-        integral, err = monte_carlo_integrate(integrand, ranges, Nsamp)
-        
-        # normalisation of differential elements
-        integral /= (Omegas1[alpha] * Omegas2[beta]) 
-        err     /= (Omegas1[alpha] * Omegas2[beta]) 
-        
-        return integral, err
-
-    integrand = [integrand_L]
+    # Define combined integrand for both components (shares geometry and correlation evaluations)
+    # When B == D, we compute both L and P components; otherwise only L
 
     if B == D:
-        integrand.append(integrand_P)
-    
-    for alpha in range(Nbin1):
-        for beta in range(Nbin2): 
-                     
-            intt, err = integral_bins(integrand, alpha, beta)
-                     
-            ncov[alpha, beta] = (sigma_L**2/Nlens) * intt[0]     
-            nerr[alpha, beta] = (sigma_L**2/Nlens) * err[0]
-                     
-            scov[alpha, beta] = (L0/Nlens) * intt[0]     
-            serr[alpha, beta] = (L0/Nlens) * err[0]
+        def integrand_all(params):
+            """Compute L and P components with shared geometry calculation."""
+            r_i, r_k, psi_k = params
 
-            if B == D:
-                ncov[alpha, beta] += (1/G_B) * intt[1]  
-                scov[alpha, beta] += (1/G_B) * intt[1]  
+            # Geometry (computed once for both components)
+            y_ik = r_k*np.sin(psi_k)
+            x_ik = r_k*np.cos(psi_k) - r_i
+
+            r_ik = np.sqrt( y_ik**2 + x_ik**2 )
+            psi_ik = np.arctan2(y_ik, x_ik)
+
+            # Pre-compute trig functions (used multiple times)
+            c2_k = cos2(psi_k)
+            c2_ik = cos2(psi_ik)
+            s2_ik = sin2(psi_ik)
+            diff_ik_k = psi_ik - psi_k
+            c2_ik_k = cos2(diff_ik_k)
+            s2_ik_k = sin2(diff_ik_k)
+
+            # Pre-compute correlation function values (expensive spline evaluations)
+            LLp_rik = LLp(r_ik)
+            LLx_rik = LLx(r_ik)
+            PP_rik = PP[B][D](r_ik)
+
+            # Jacobian
+            jacobian = 2 * np.pi * r_i * r_k
+
+            # Compute both components
+            f_L = (1/2) * PP_rik * c2_k
+            f_P = LLp_rik * c2_ik * c2_ik_k + LLx_rik * s2_ik * s2_ik_k
+
+            return np.array([f_L * jacobian, f_P * jacobian])
+
+        def integral_bins(alpha, beta):
+            """Compute both component integrals with shared samples."""
+            ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
+
+            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Nsamp)
+
+            # normalisation of differential elements
+            norm = 1/(Omegas1[alpha] * Omegas2[beta])
+            integrals = [i * norm for i in integrals]
+            errs = [e * norm for e in errs]
+            return integrals, errs
+
+        for alpha in range(Nbin1):
+            for beta in range(Nbin2):
+
+                integrals, errs = integral_bins(alpha, beta)
+                int_L, int_P = integrals
+                err_L, err_P = errs
+
+                ncov[alpha, beta] = (sigma_L**2/Nlens) * int_L + (1/G_B) * int_P
+                nerr[alpha, beta] = (sigma_L**2/Nlens) * err_L
+
+                scov[alpha, beta] = (L0/Nlens) * int_L + (1/G_B) * int_P
+                serr[alpha, beta] = (L0/Nlens) * err_L
 
                 if alpha == beta:
                     ncov[alpha, beta] += (1/2) * (sigma_L**2 / (Nlens*G_B) ) * (Omegatot/Omegas1[alpha])
                     scov[alpha, beta] += (1/2) * (L0 / (Nlens*G_B) ) * (Omegatot/Omegas1[alpha])
 
-            test_err(nerr[alpha, beta], ncov[alpha, beta], f'LPLP ncov redshifts {B, D} angular bins {alpha, beta}')
-            test_err(serr[alpha, beta], scov[alpha, beta], f'LPLP scov redshifts {B, D} angular bins {alpha, beta}')
-            
+                test_err(nerr[alpha, beta], ncov[alpha, beta], f'LPLP ncov redshifts {B, D} angular bins {alpha, beta}')
+                test_err(serr[alpha, beta], scov[alpha, beta], f'LPLP scov redshifts {B, D} angular bins {alpha, beta}')
+
+    else:
+        # When B != D, only integrand_L is needed
+        def integrand_L(params):
+            r_i, r_k, psi_k = params
+
+            y_ik = r_k*np.sin(psi_k)
+            x_ik = r_k*np.cos(psi_k) - r_i
+
+            r_ik = np.sqrt( y_ik**2 + x_ik**2 )
+
+            f = (1/2) * PP[B][D](r_ik) * cos2(psi_k)
+
+            f *= 2 * np.pi * r_i * r_k
+
+            return f
+
+        def integral_bins(alpha, beta):
+            ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
+
+            integral, err = monte_carlo_integrate(integrand_L, ranges, Nsamp)
+
+            # normalisation of differential elements
+            norm = 1/(Omegas1[alpha] * Omegas2[beta])
+            integral *= norm
+            err *= norm
+            return integral, err
+
+        for alpha in range(Nbin1):
+            for beta in range(Nbin2):
+
+                int_L, err_L = integral_bins(alpha, beta)
+
+                ncov[alpha, beta] = (sigma_L**2/Nlens) * int_L
+                nerr[alpha, beta] = (sigma_L**2/Nlens) * err_L
+
+                scov[alpha, beta] = (L0/Nlens) * int_L
+                serr[alpha, beta] = (L0/Nlens) * err_L
+
+                test_err(nerr[alpha, beta], ncov[alpha, beta], f'LPLP ncov redshifts {B, D} angular bins {alpha, beta}')
+                test_err(serr[alpha, beta], scov[alpha, beta], f'LPLP scov redshifts {B, D} angular bins {alpha, beta}')
+
     # Make the full cosmic covariance matrix
 
     ncov = np.block([[ncov]])

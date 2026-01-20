@@ -43,69 +43,63 @@ def generate_ccov_LLLP(D):
         err_p = np.zeros((Nbin1, Nbin2))
         err_x = np.zeros((Nbin1, Nbin2))
         
-        # Define the integrands (complete from here)
-        
-        def integrand_p(params):
-            
+        # Define combined integrand for both components (shares geometry and correlation evaluations)
+
+        def integrand_all(params):
+            """Compute p, x components with shared geometry calculation."""
             psi_j, psi_kd, r_j, r_kd, r_k = params
-        
+
+            # Geometry (computed once for both components)
             y_kj = r_j*np.sin(psi_j)
             x_kj = r_j*np.cos(psi_j) - r_k
-            
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
+
+            r_kj = np.sqrt( y_kj**2 + x_kj**2 )
             psi_kj = np.arctan2(y_kj, x_kj)
-            
+
             r_jd = cos_law_side(r_kd, r_kj, (psi_kd-psi_kj))
             psi_jd = cos_law_angle(r_kd, r_jd, r_kj) + psi_kd
-    
-            f = ( LP[D](r_jd) * cos2(psi_jd - psi_j)
-                * ( LLp(r_k) * cos2(psi_j) * cos2(psi_kd)
-                  + LLx(r_k) * sin2(psi_j) * sin2(psi_kd)
-                  ) )
-    
-            f *= 2 * np.pi * r_k * r_j * r_kd
-            
-            return f
-        
-        def integrand_x(params):
-            
-            psi_j, psi_kd, r_j, r_kd, r_k = params
-        
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
-            
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jd = cos_law_side(r_kd, r_kj, (psi_kd-psi_kj))
-            psi_jd = cos_law_angle(r_kd, r_jd, r_kj) + psi_kd
-    
-            f = ( LP[D](r_jd) * cos2(psi_jd - psi_j)
-                * ( LLx(r_k) * cos2(psi_j) * sin2(psi_kd)
-                  - LLp(r_k) * sin2(psi_j) * cos2(psi_kd)
-                  ) )
-    
-            f *= 2 * np.pi * r_k * r_j * r_kd
-            
-            return f
-        
-        def integral_bins(integrand, alpha, beta):
-            
+
+            # Pre-compute trig functions (used multiple times)
+            c2_j = cos2(psi_j)
+            s2_j = sin2(psi_j)
+            c2_kd = cos2(psi_kd)
+            s2_kd = sin2(psi_kd)
+            c2_jd_j = cos2(psi_jd - psi_j)
+
+            # Pre-compute correlation function values (expensive spline evaluations)
+            LLp_rk = LLp(r_k)
+            LLx_rk = LLx(r_k)
+            LP_rjd = LP[D](r_jd)
+
+            # Jacobian
+            jacobian = 2 * np.pi * r_k * r_j * r_kd
+
+            # Compute both components
+            f_p = LP_rjd * c2_jd_j * ( LLp_rk * c2_j * c2_kd + LLx_rk * s2_j * s2_kd )
+
+            f_x = LP_rjd * c2_jd_j * ( LLx_rk * c2_j * s2_kd - LLp_rk * s2_j * c2_kd )
+
+            return np.array([f_p * jacobian, f_x * jacobian])
+
+        def integral_bins(alpha, beta):
+            """Compute both component integrals with shared samples."""
             ranges = [(0, 2*np.pi), (0, 2*np.pi),
                       (rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, r2_max)]
-            
-            integral, err = monte_carlo_integrate(integrand, ranges, Csamp)
-            
+
+            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Csamp)
+
             # normalisation of differential elements
-            integral *= 2/(Omegatot * Omegas1[alpha] * Omegas2[beta]) 
-            err *= 2/(Omegatot * Omegas1[alpha] * Omegas2[beta]) 
-            return integral, err
-        
+            norm = 2/(Omegatot * Omegas1[alpha] * Omegas2[beta])
+            integrals = [i * norm for i in integrals]
+            errs = [e * norm for e in errs]
+            return integrals, errs
+
         for alpha in range(Nbin1):
-            for beta in range(Nbin2): 
-                         
-                ccov_p[alpha, beta], err_p[alpha, beta] = integral_bins(integrand_p, alpha, beta)
-                ccov_x[alpha, beta], err_x[alpha, beta] = integral_bins(integrand_x, alpha, beta)
+            for beta in range(Nbin2):
+
+                integrals, errs = integral_bins(alpha, beta)
+                ccov_p[alpha, beta], ccov_x[alpha, beta] = integrals
+                err_p[alpha, beta], err_x[alpha, beta] = errs
     
                 test_err(err_p[alpha, beta], ccov_p[alpha, beta], f'LLLP ccov plus redshifts {D} angular bins {alpha, beta}')
                 test_err(err_x[alpha, beta], ccov_x[alpha, beta], f'LLLP ccov times redshifts {D} angular bins {alpha, beta}')
@@ -170,67 +164,65 @@ def generate_ncov_LLLP(D):
         serr_p = np.zeros((Nbin1, Nbin2))
         serr_x = np.zeros((Nbin1, Nbin2))
         
-        # Define the integrands
-        
-        def integrand_p(params):
-            
+        # Define combined integrand for both components (shares geometry and correlation evaluations)
+
+        def integrand_all(params):
+            """Compute p, x components with shared geometry calculation."""
             r_i, r_d, psi_d = params
-        
+
+            # Geometry (computed once for both components)
             y_id = r_d*np.sin(psi_d)
             x_id = r_d*np.cos(psi_d) - r_i
-            
-            r_id = np.sqrt( y_id**2 + x_id**2 ) 
+
+            r_id = np.sqrt( y_id**2 + x_id**2 )
             psi_id = np.arctan2(y_id, x_id)
-            
-            f = LP[D](r_id) * cos2(psi_d) * cos2(psi_id) 
-    
-            f *= 2 * np.pi * r_i * r_d
-                                  
-            return f
-        
-        def integrand_x(params):
-            
-            r_i, r_d, psi_d = params
-        
-            y_id = r_d*np.sin(psi_d)
-            x_id = r_d*np.cos(psi_d) - r_i
-            
-            r_id = np.sqrt( y_id**2 + x_id**2 ) 
-            psi_id = np.arctan2(y_id, x_id)
-            
-            f = LP[D](r_id) * sin2(psi_d) * sin2(psi_id) 
-    
-            f *= 2 * np.pi * r_i * r_d
-                                  
-            return f
-        
-        def integral_bins(integrand, alpha, beta):
-            
+
+            # Pre-compute trig functions (used multiple times)
+            c2_d = cos2(psi_d)
+            s2_d = sin2(psi_d)
+            c2_id = cos2(psi_id)
+            s2_id = sin2(psi_id)
+
+            # Pre-compute correlation function value (expensive spline evaluation)
+            LP_rid = LP[D](r_id)
+
+            # Jacobian
+            jacobian = 2 * np.pi * r_i * r_d
+
+            # Compute both components
+            f_p = LP_rid * c2_d * c2_id
+            f_x = LP_rid * s2_d * s2_id
+
+            return np.array([f_p * jacobian, f_x * jacobian])
+
+        def integral_bins(alpha, beta):
+            """Compute both component integrals with shared samples."""
             ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
-            
-            integral, err = monte_carlo_integrate(integrand, ranges, Nsamp)
-            
+
+            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Nsamp)
+
             # normalisation of differential elements
-            integral /= Omegas1[alpha] * Omegas2[beta]
-            err      /= Omegas1[alpha] * Omegas2[beta]
-            
-            return integral, err
-        
+            norm = 1/(Omegas1[alpha] * Omegas2[beta])
+            integrals = [i * norm for i in integrals]
+            errs = [e * norm for e in errs]
+            return integrals, errs
+
         for alpha in range(Nbin1):
-            for beta in range(Nbin2): 
-    
-                int_p, err_p = integral_bins(integrand_p, alpha, beta)
-                int_x, err_x = integral_bins(integrand_x, alpha, beta)
-                         
+            for beta in range(Nbin2):
+
+                integrals, errs = integral_bins(alpha, beta)
+                int_p, int_x = integrals
+                err_p, err_x = errs
+
                 ncov_p[alpha, beta] = (sigma_L**2/Nlens) * int_p
                 nerr_p[alpha, beta] = (sigma_L**2/Nlens) * err_p
-                         
+
                 scov_p[alpha, beta] = (L0/Nlens) * int_p
                 serr_p[alpha, beta] = (L0/Nlens) * err_p
-                
+
                 ncov_x[alpha, beta] = (sigma_L**2/Nlens) * int_x
                 nerr_x[alpha, beta] = (sigma_L**2/Nlens) * err_x
-                         
+
                 scov_x[alpha, beta] = (L0/Nlens) * int_x
                 serr_x[alpha, beta] = (L0/Nlens) * err_x
     

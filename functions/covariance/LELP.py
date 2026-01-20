@@ -43,71 +43,68 @@ def generate_ccov_LELP(B, D):
         err_p = np.zeros((Nbin1, Nbin2))
         err_x = np.zeros((Nbin1, Nbin2))
         
-        # Define the integrands
-        
-        def integrand_p(params):
-            
+        # Define combined integrand for both components (shares geometry and correlation evaluations)
+
+        def integrand_all(params):
+            """Compute p, x components with shared geometry calculation."""
             psi_b, psi_kd, r_b, r_kd, r_k = params
-        
+
+            # Geometry (computed once for both components)
             y_kb = r_b*np.sin(psi_b)
             x_kb = r_b*np.cos(psi_b) - r_k
-            
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
+
+            r_kb = np.sqrt( y_kb**2 + x_kb**2 )
             psi_kb = np.arctan2(y_kb, x_kb)
-            
+
             r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
             psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
-    
-            f = ( EP[B][D](r_bd) * cos2(psi_bd - psi_b)
-                * (LLp(r_k) * cos2(psi_b) * cos2(psi_kd) + LLx(r_k) * sin2(psi_b) * sin2(psi_kd))
-                + LP[D](r_bd) * cos2(psi_bd-psi_b)
-                * (LEp[B](r_k) * cos2(psi_b) * cos2(psi_kd) + LEx[B](r_k) * sin2(psi_b) * sin2(psi_kd))
-                )
-            
-            f *= 2 * np.pi * r_k * r_b * r_kd
-            
-            return f
-        
-        def integrand_x(params):
-            
-            psi_b, psi_kd, r_b, r_kd, r_k = params
-        
-            y_kb = r_b*np.sin(psi_b)
-            x_kb = r_b*np.cos(psi_b) - r_k
-            
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
-    
-            f = ( EP[B][D](r_bd) * cos2(psi_bd - psi_b)
-                * (LLx(r_k) * cos2(psi_b) * sin2(psi_kd) - LLp(r_k) * sin2(psi_b) * cos2(psi_kd))
-                + LP[D](r_bd) * cos2(psi_bd-psi_b)
-                * (LEx[B](r_k) * cos2(psi_b) * sin2(psi_kd) - LEp[B](r_k) * sin2(psi_b) * cos2(psi_kd))
-                )
-            
-            f *= 2 * np.pi * r_k * r_b * r_kd
-            
-            return f
-        
-        def integral_bins(integrand, alpha, beta):
-            
+
+            # Pre-compute trig functions (used multiple times)
+            c2_b = cos2(psi_b)
+            s2_b = sin2(psi_b)
+            c2_kd = cos2(psi_kd)
+            s2_kd = sin2(psi_kd)
+            c2_bd_b = cos2(psi_bd - psi_b)
+
+            # Pre-compute correlation function values (expensive spline evaluations)
+            LLp_rk = LLp(r_k)
+            LLx_rk = LLx(r_k)
+            LEp_rk = LEp[B](r_k)
+            LEx_rk = LEx[B](r_k)
+            EP_rbd = EP[B][D](r_bd)
+            LP_rbd = LP[D](r_bd)
+
+            # Jacobian
+            jacobian = 2 * np.pi * r_k * r_b * r_kd
+
+            # Compute both components
+            f_p = ( EP_rbd * c2_bd_b * (LLp_rk * c2_b * c2_kd + LLx_rk * s2_b * s2_kd)
+                  + LP_rbd * c2_bd_b * (LEp_rk * c2_b * c2_kd + LEx_rk * s2_b * s2_kd) )
+
+            f_x = ( EP_rbd * c2_bd_b * (LLx_rk * c2_b * s2_kd - LLp_rk * s2_b * c2_kd)
+                  + LP_rbd * c2_bd_b * (LEx_rk * c2_b * s2_kd - LEp_rk * s2_b * c2_kd) )
+
+            return np.array([f_p * jacobian, f_x * jacobian])
+
+        def integral_bins(alpha, beta):
+            """Compute both component integrals with shared samples."""
             ranges = [(0, 2*np.pi), (0, 2*np.pi),
                       (rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, r2_max)]
-            
-            integral, err = monte_carlo_integrate(integrand, ranges, Csamp)
-            
+
+            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Csamp)
+
             # normalisation of differential elements
-            integral /= (Omegatot * Omegas1[alpha] * Omegas2[beta]) 
-            err /= (Omegatot * Omegas1[alpha] * Omegas2[beta]) 
-            return integral, err
-        
+            norm = 1/(Omegatot * Omegas1[alpha] * Omegas2[beta])
+            integrals = [i * norm for i in integrals]
+            errs = [e * norm for e in errs]
+            return integrals, errs
+
         for alpha in range(Nbin1):
-            for beta in range(Nbin2): 
-                         
-                ccov_p[alpha, beta], err_p[alpha, beta] = integral_bins(integrand_p, alpha, beta)
-                ccov_x[alpha, beta], err_x[alpha, beta] = integral_bins(integrand_x, alpha, beta)
+            for beta in range(Nbin2):
+
+                integrals, errs = integral_bins(alpha, beta)
+                ccov_p[alpha, beta], ccov_x[alpha, beta] = integrals
+                err_p[alpha, beta], err_x[alpha, beta] = errs
     
                 test_err(err_p[alpha, beta], ccov_p[alpha, beta], f'LELP ccov plus redshifts {B, D} angular bins {alpha, beta}')
                 test_err(err_x[alpha, beta], ccov_x[alpha, beta], f'LELP ccov times redshifts {B, D} angular bins {alpha, beta}')
@@ -173,67 +170,65 @@ def generate_ncov_LELP(B, D):
         serr_p = np.zeros((Nbin1, Nbin2))
         serr_x = np.zeros((Nbin1, Nbin2))
         
-        # Define the integrands
-        
-        def integrand_p(params):
-            
+        # Define combined integrand for both components (shares geometry and correlation evaluations)
+
+        def integrand_all(params):
+            """Compute p, x components with shared geometry calculation."""
             r_b, r_d, psi_d = params
-        
+
+            # Geometry (computed once for both components)
             y_bd = r_d*np.sin(psi_d)
             x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
+
+            r_bd = np.sqrt( y_bd**2 + x_bd**2 )
             psi_bd = np.arctan2(y_bd, x_bd)
-    
-            f = EP[B][D](r_bd) * cos2(psi_d) * cos2(psi_bd)
-    
-            f *= np.pi * r_b * r_d        #factor of 2 cancels with half out the front
-                                  
-            return f
-        
-        def integrand_x(params):
-            
-            r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
-            psi_bd = np.arctan2(y_bd, x_bd)
-    
-            f = EP[B][D](r_bd) * sin2(psi_d) * sin2(psi_bd)
-    
-            f *= np.pi * r_b * r_d        #factor of 2 cancels with half out the front
-                                  
-            return f
-        
-        def integral_bins(integrand, alpha, beta):
-            
+
+            # Pre-compute trig functions (used multiple times)
+            c2_d = cos2(psi_d)
+            s2_d = sin2(psi_d)
+            c2_bd = cos2(psi_bd)
+            s2_bd = sin2(psi_bd)
+
+            # Pre-compute correlation function value (expensive spline evaluation)
+            EP_rbd = EP[B][D](r_bd)
+
+            # Jacobian (factor of 2 cancels with half out the front)
+            jacobian = np.pi * r_b * r_d
+
+            # Compute both components
+            f_p = EP_rbd * c2_d * c2_bd
+            f_x = EP_rbd * s2_d * s2_bd
+
+            return np.array([f_p * jacobian, f_x * jacobian])
+
+        def integral_bins(alpha, beta):
+            """Compute both component integrals with shared samples."""
             ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
-            
-            integral, err = monte_carlo_integrate(integrand, ranges, Nsamp)
-            
+
+            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Nsamp)
+
             # normalisation of differential elements
-            integral /= Omegas1[alpha] * Omegas2[beta]
-            err      /= Omegas1[alpha] * Omegas2[beta]
-            
-            return integral, err
-        
+            norm = 1/(Omegas1[alpha] * Omegas2[beta])
+            integrals = [i * norm for i in integrals]
+            errs = [e * norm for e in errs]
+            return integrals, errs
+
         for alpha in range(Nbin1):
-            for beta in range(Nbin2): 
-    
-                int_p, err_p = integral_bins(integrand_p, alpha, beta)
-                int_x, err_x = integral_bins(integrand_x, alpha, beta)
-                         
+            for beta in range(Nbin2):
+
+                integrals, errs = integral_bins(alpha, beta)
+                int_p, int_x = integrals
+                err_p, err_x = errs
+
                 ncov_p[alpha, beta] = (sigma_L**2/Nlens) * int_p
                 nerr_p[alpha, beta] = (sigma_L**2/Nlens) * err_p
-                         
+
                 scov_p[alpha, beta] = (L0/Nlens) * int_p
                 serr_p[alpha, beta] = (L0/Nlens) * err_p
-                
+
                 ncov_x[alpha, beta] = (sigma_L**2/Nlens) * int_x
                 nerr_x[alpha, beta] = (sigma_L**2/Nlens) * err_x
-                         
+
                 scov_x[alpha, beta] = (L0/Nlens) * int_x
                 serr_x[alpha, beta] = (L0/Nlens) * err_x
     

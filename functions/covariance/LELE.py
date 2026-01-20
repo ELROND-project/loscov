@@ -47,136 +47,102 @@ def generate_ccov_LELE(B, D):
         err_xp = np.zeros((Nbin1, Nbin2))
         err_xx = np.zeros((Nbin1, Nbin2))    
     
-        # Define the integrands
-        
-        def integrand_pp(params):
-            
+        # Define combined integrand that computes all 4 components with shared geometry
+
+        def integrand_all(params):
+            """Compute pp, px, xp, xx components with shared geometry calculation."""
+
             psi_b, psi_kd, r_b, r_kd, r_k = params
-        
+
+            # Geometry (computed once for all 4 components)
             y_kb = r_b * np.sin(psi_b)
             x_kb = r_b * np.cos(psi_b) - r_k
-            
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
+
+            r_kb = np.sqrt(y_kb**2 + x_kb**2)
             psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
+
+            r_bd = cos_law_side(r_kd, r_kb, (psi_kd - psi_kb))
             psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
-    
-            f = ( ( LLp(r_k) * cos2(psi_b) * cos2(psi_kd)
-                  + LLx(r_k) * sin2(psi_b) * sin2(psi_kd) )
-            * ( EEp[B][D](r_bd) * cos2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
-               + EEx[B][D](r_bd) * sin2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
-            + ( LEp[D](r_k) * cos2(psi_b) * cos2(psi_kd)
-               + LEx[D](r_k) * sin2(psi_b) * sin2(psi_kd) )
-            * ( LEp[B](r_bd) * cos2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
-               + LEx[B](r_bd) * sin2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
-                )
-            
-            f *= 2 * np.pi * r_k * r_b * r_kd
-            
-            return f
-        
-        def integrand_px(params):
-            
-            psi_b, psi_kd, r_b, r_kd, r_k = params
-        
-            y_kb = r_b * np.sin(psi_b)
-            x_kb = r_b * np.cos(psi_b) - r_k
-            
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
-    
-            f = - ( ( LLp(r_k) * cos2(psi_b) * sin2(psi_kd)
-                  - LLx(r_k) * sin2(psi_b) * cos2(psi_kd) )
-            * ( EEp[B][D](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
-               - EEx[B][D](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
-            + ( LEp[D](r_k) * cos2(psi_b) * sin2(psi_kd)
-               - LEx[D](r_k) * sin2(psi_b) * cos2(psi_kd) )
-                * ( LEp[B](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
-                  - LEx[B](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
-                )
-            
-            f *= 2 * np.pi * r_k * r_b * r_kd
-            
-            return f
-        
-        def integrand_xp(params):
-            
-            psi_b, psi_kd, r_b, r_kd, r_k = params
-        
-            y_kb = r_b * np.sin(psi_b)
-            x_kb = r_b * np.cos(psi_b) - r_k
-            
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
-    
-            f = - ( ( LLp(r_k) * sin2(psi_b) * cos2(psi_kd)
-                  - LLx(r_k) * cos2(psi_b) * sin2(psi_kd) )
-            * ( EEp[B][D](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
-               - EEx[B][D](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
-            + ( LEp[D](r_k) * sin2(psi_b) * cos2(psi_kd)
-               - LEx[D](r_k) * cos2(psi_b) * sin2(psi_kd) )
-                * ( LEp[B](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
-                  - LEx[B](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
-                )
-            
-            f *= 2 * np.pi * r_k * r_b * r_kd
-            
-            return f
-        
-        def integrand_xx(params):
-            
-            psi_b, psi_kd, r_b, r_kd, r_k = params
-        
-            y_kb = r_b * np.sin(psi_b)
-            x_kb = r_b * np.cos(psi_b) - r_k
-            
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
-    
-            f = ( ( LLp(r_k) * sin2(psi_b) * sin2(psi_kd)
-                  + LLx(r_k) * cos2(psi_b) * cos2(psi_kd) )
-                * ( EEp[B][D](r_bd) * sin2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
-                 + EEx[B][D](r_bd) * cos2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
-                + ( LEp[D](r_k) * sin2(psi_b) * sin2(psi_kd)
-                  + LEx[D](r_k) * cos2(psi_b) * cos2(psi_kd) )
-                * ( LEp[B](r_bd) * sin2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
-                  + LEx[B](r_bd) * cos2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
-                )
-            
-            f *= 2 * np.pi * r_k * r_b * r_kd
-    
-            return f
-            
-        def integral_bins(integrand, alpha, beta):
-            
+
+            # Pre-compute trig functions (used multiple times)
+            c2_b = cos2(psi_b)
+            s2_b = sin2(psi_b)
+            c2_kd = cos2(psi_kd)
+            s2_kd = sin2(psi_kd)
+
+            psi_bd_b = psi_bd - psi_b
+            psi_bd_kd = psi_bd - psi_kd
+            c2_bd_b = cos2(psi_bd_b)
+            s2_bd_b = sin2(psi_bd_b)
+            c2_bd_kd = cos2(psi_bd_kd)
+            s2_bd_kd = sin2(psi_bd_kd)
+
+            # Pre-compute correlation function values (expensive spline evaluations)
+            LLp_rk = LLp(r_k)
+            LLx_rk = LLx(r_k)
+            EEp_rbd = EEp[B][D](r_bd)
+            EEx_rbd = EEx[B][D](r_bd)
+            LEp_D_rk = LEp[D](r_k)
+            LEx_D_rk = LEx[D](r_k)
+            LEp_B_rbd = LEp[B](r_bd)
+            LEx_B_rbd = LEx[B](r_bd)
+
+            # Common jacobian factor
+            jacobian = 2 * np.pi * r_k * r_b * r_kd
+
+            # First factors for each component (LL and LE at r_k)
+            LL_pp = LLp_rk * c2_b * c2_kd + LLx_rk * s2_b * s2_kd
+            LL_px = LLp_rk * c2_b * s2_kd - LLx_rk * s2_b * c2_kd
+            LL_xp = LLp_rk * s2_b * c2_kd - LLx_rk * c2_b * s2_kd
+            LL_xx = LLp_rk * s2_b * s2_kd + LLx_rk * c2_b * c2_kd
+
+            LE_D_pp = LEp_D_rk * c2_b * c2_kd + LEx_D_rk * s2_b * s2_kd
+            LE_D_px = LEp_D_rk * c2_b * s2_kd - LEx_D_rk * s2_b * c2_kd
+            LE_D_xp = LEp_D_rk * s2_b * c2_kd - LEx_D_rk * c2_b * s2_kd
+            LE_D_xx = LEp_D_rk * s2_b * s2_kd + LEx_D_rk * c2_b * c2_kd
+
+            # Second factors for each component (EE and LE at r_bd)
+            EE_pp = EEp_rbd * c2_bd_b * c2_bd_kd + EEx_rbd * s2_bd_b * s2_bd_kd
+            EE_px = EEp_rbd * c2_bd_b * s2_bd_kd - EEx_rbd * s2_bd_b * c2_bd_kd
+            EE_xp = EEp_rbd * s2_bd_b * c2_bd_kd - EEx_rbd * c2_bd_b * s2_bd_kd
+            EE_xx = EEp_rbd * s2_bd_b * s2_bd_kd + EEx_rbd * c2_bd_b * c2_bd_kd
+
+            LE_B_pp = LEp_B_rbd * c2_bd_b * c2_bd_kd + LEx_B_rbd * s2_bd_b * s2_bd_kd
+            LE_B_px = LEp_B_rbd * c2_bd_b * s2_bd_kd - LEx_B_rbd * s2_bd_b * c2_bd_kd
+            LE_B_xp = LEp_B_rbd * s2_bd_b * c2_bd_kd - LEx_B_rbd * c2_bd_b * s2_bd_kd
+            LE_B_xx = LEp_B_rbd * s2_bd_b * s2_bd_kd + LEx_B_rbd * c2_bd_b * c2_bd_kd
+
+            # Combine components
+            f_pp = (LL_pp * EE_pp + LE_D_pp * LE_B_pp)
+            f_px = -(LL_px * EE_px + LE_D_px * LE_B_px)
+            f_xp = -(LL_xp * EE_xp + LE_D_xp * LE_B_xp)
+            f_xx = (LL_xx * EE_xx + LE_D_xx * LE_B_xx)
+
+            return np.array([f_pp * jacobian, f_px * jacobian, f_xp * jacobian, f_xx * jacobian])
+
+        def integral_bins(alpha, beta):
+            """Compute all 4 component integrals with shared samples."""
+
             ranges = [(0, 2*np.pi), (0, 2*np.pi),
                       (rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, r2_max)]
-            
-            integral, err = monte_carlo_integrate(integrand, ranges, Csamp)
-            
+
+            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Csamp)
+
             # normalisation of differential elements
-            integral /= (Omegatot * Omegas1[alpha] * Omegas2[beta]) 
-            err /= (Omegatot * Omegas1[alpha] * Omegas2[beta]) 
-            return integral, err
-    
+            norm = 1 / (Omegatot * Omegas1[alpha] * Omegas2[beta])
+            integrals = [i * norm for i in integrals]
+            errs = [e * norm for e in errs]
+
+            return integrals, errs
+
         for alpha in range(Nbin1):
-            for beta in range(Nbin2): 
-                         
-                ccov_pp[alpha, beta], err_pp[alpha, beta] = integral_bins(integrand_pp, alpha, beta)
-                ccov_px[alpha, beta], err_px[alpha, beta] = integral_bins(integrand_px, alpha, beta)
-                ccov_xp[alpha, beta], err_xp[alpha, beta] = integral_bins(integrand_xp, alpha, beta)
-                ccov_xx[alpha, beta], err_xx[alpha, beta] = integral_bins(integrand_xx, alpha, beta)
-        
+            for beta in range(Nbin2):
+
+                integrals, errs = integral_bins(alpha, beta)
+
+                ccov_pp[alpha, beta], ccov_px[alpha, beta], ccov_xp[alpha, beta], ccov_xx[alpha, beta] = integrals
+                err_pp[alpha, beta], err_px[alpha, beta], err_xp[alpha, beta], err_xx[alpha, beta] = errs
+
                 test_err(err_pp[alpha, beta], ccov_pp[alpha, beta], f'LELE ccov plus plus redshift bins{B, D} angular bins {alpha, beta}')
                 test_err(err_px[alpha, beta], ccov_px[alpha, beta], f'LELE ccov plus times redshift bins{B, D} angular bins {alpha, beta}')
                 test_err(err_xp[alpha, beta], ccov_xp[alpha, beta], f'LELE ccov times plus redshift bins{B, D} angular bins {alpha, beta}')
@@ -268,283 +234,157 @@ def generate_ncov_LELE(B, D):
         serr_xp = np.zeros((Nbin1, Nbin2))
         serr_xx = np.zeros((Nbin1, Nbin2))
         
-        # Define the integrands
-        
-        def integrand_pp_L(params):
-            
+        # Define combined integrands for L terms (always used) and E terms (used when B==D)
+
+        def integrand_all_L(params):
+            """Compute pp, px, xp, xx L-components with shared geometry."""
+
             r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
+
+            # Geometry (computed once)
+            y_bd = r_d * np.sin(psi_d)
+            x_bd = r_d * np.cos(psi_d) - r_b
+
+            r_bd = np.sqrt(y_bd**2 + x_bd**2)
             psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = ( cos2(psi_d) 
-                * ( EEp[B][D](r_bd) * cos2(psi_bd) * cos2(psi_bd - psi_d) 
-                  + EEx[B][D](r_bd) * sin2(psi_bd) * sin2(psi_bd - psi_d) 
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        def integrand_pp_E(params):
-            
+
+            # Pre-compute trig functions
+            c2_d = cos2(psi_d)
+            s2_d = sin2(psi_d)
+            c2_bd = cos2(psi_bd)
+            s2_bd = sin2(psi_bd)
+
+            psi_bd_d = psi_bd - psi_d
+            c2_bd_d = cos2(psi_bd_d)
+            s2_bd_d = sin2(psi_bd_d)
+
+            # Pre-compute correlation function values
+            EEp_rbd = EEp[B][D](r_bd)
+            EEx_rbd = EEx[B][D](r_bd)
+
+            # Common jacobian factor (factor of 2 absorbed into 1/2 prefactor)
+            jacobian = np.pi * r_b * r_d
+
+            # Components using EE correlations
+            f_pp = c2_d * (EEp_rbd * c2_bd * c2_bd_d + EEx_rbd * s2_bd * s2_bd_d)
+            f_px = -s2_d * (EEp_rbd * c2_bd * s2_bd_d - EEx_rbd * s2_bd * c2_bd_d)
+            f_xp = s2_d * (EEp_rbd * s2_bd * c2_bd_d - EEx_rbd * c2_bd * s2_bd_d)
+            f_xx = c2_d * (EEp_rbd * s2_bd * s2_bd_d + EEx_rbd * c2_bd * c2_bd_d)
+
+            return np.array([f_pp * jacobian, f_px * jacobian, f_xp * jacobian, f_xx * jacobian])
+
+        def integrand_all_E(params):
+            """Compute pp, px, xp, xx E-components with shared geometry (used when B==D)."""
+
             r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
+
+            # Geometry (computed once)
+            y_bd = r_d * np.sin(psi_d)
+            x_bd = r_d * np.cos(psi_d) - r_b
+
+            r_bd = np.sqrt(y_bd**2 + x_bd**2)
             psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = ( cos2(psi_d) 
-                * ( LLp(r_bd) * cos2(psi_bd) * cos2(psi_bd - psi_d)  
-                  + LLx(r_bd) * sin2(psi_bd) * sin2(psi_bd - psi_d)  
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        def integrand_px_L(params):
-            
-            r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
-            psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = - ( sin2(psi_d) 
-                * ( EEp[B][D](r_bd) * cos2(psi_bd) * sin2(psi_bd - psi_d)  
-                  - EEx[B][D](r_bd) * sin2(psi_bd) * cos2(psi_bd - psi_d)  
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        def integrand_px_E(params):
-            
-            r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
-            psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = - ( sin2(psi_d) 
-                * ( LLp(r_bd) * cos2(psi_bd) * sin2(psi_bd - psi_d) 
-                  - LLx(r_bd) * sin2(psi_bd) * cos2(psi_bd - psi_d) 
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        def integrand_xp_L(params):
-            
-            r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
-            psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = ( sin2(psi_d) 
-                * ( EEp[B][D](r_bd) * sin2(psi_bd) * cos2(psi_bd - psi_d)  
-                  - EEx[B][D](r_bd) * cos2(psi_bd) * sin2(psi_bd - psi_d)  
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        def integrand_xp_E(params):
-            
-            r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
-            psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = ( sin2(psi_d) 
-                * ( LLp(r_bd) * sin2(psi_bd) * cos2(psi_bd - psi_d)   
-                  - LLx(r_bd) * cos2(psi_bd) * sin2(psi_bd - psi_d) 
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        def integrand_xx_L(params):
-            
-            r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
-            psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = ( cos2(psi_d) 
-                * ( EEp[B][D](r_bd) * sin2(psi_bd) * sin2(psi_bd - psi_d)  
-                  + EEx[B][D](r_bd) * cos2(psi_bd) * cos2(psi_bd - psi_d)  
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        def integrand_xx_E(params):
-            
-            r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
-            psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = ( cos2(psi_d) 
-                * ( LLp(r_bd) * sin2(psi_bd) * sin2(psi_bd - psi_d) 
-                  + LLx(r_bd) * cos2(psi_bd) * cos2(psi_bd - psi_d) 
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        
-        def integral_bins(integrand, alpha, beta):
-            
+
+            # Pre-compute trig functions
+            c2_d = cos2(psi_d)
+            s2_d = sin2(psi_d)
+            c2_bd = cos2(psi_bd)
+            s2_bd = sin2(psi_bd)
+
+            psi_bd_d = psi_bd - psi_d
+            c2_bd_d = cos2(psi_bd_d)
+            s2_bd_d = sin2(psi_bd_d)
+
+            # Pre-compute correlation function values
+            LLp_rbd = LLp(r_bd)
+            LLx_rbd = LLx(r_bd)
+
+            # Common jacobian factor
+            jacobian = np.pi * r_b * r_d
+
+            # Components using LL correlations
+            f_pp = c2_d * (LLp_rbd * c2_bd * c2_bd_d + LLx_rbd * s2_bd * s2_bd_d)
+            f_px = -s2_d * (LLp_rbd * c2_bd * s2_bd_d - LLx_rbd * s2_bd * c2_bd_d)
+            f_xp = s2_d * (LLp_rbd * s2_bd * c2_bd_d - LLx_rbd * c2_bd * s2_bd_d)
+            f_xx = c2_d * (LLp_rbd * s2_bd * s2_bd_d + LLx_rbd * c2_bd * c2_bd_d)
+
+            return np.array([f_pp * jacobian, f_px * jacobian, f_xp * jacobian, f_xx * jacobian])
+
+        def integral_bins(alpha, beta):
+            """Compute all component integrals with shared samples."""
+
             ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
-            
-            integral, err = monte_carlo_integrate(integrand, ranges, Nsamp)
-            
-            # normalisation of differential elements
-            integral /= (Omegas1[alpha] * Omegas2[beta]) 
-            err      /= (Omegas1[alpha] * Omegas2[beta]) 
-            
-            return integral, err
-        
-        integrand_pp = [integrand_pp_L]
-        integrand_px = [integrand_px_L]
-        integrand_xp = [integrand_xp_L]
-        integrand_xx = [integrand_xx_L]
-    
-        if B == D:
-            integrand_pp.append(integrand_pp_E)
-            integrand_px.append(integrand_px_E)
-            integrand_xp.append(integrand_xp_E)
-            integrand_xx.append(integrand_xx_E)
-    
+
+            # Always compute L terms
+            integrals_L, errs_L = monte_carlo_integrate(integrand_all_L, ranges, Nsamp)
+
+            # Compute E terms only if B == D
+            if B == D:
+                integrals_E, errs_E = monte_carlo_integrate(integrand_all_E, ranges, Nsamp)
+            else:
+                integrals_E = [0, 0, 0, 0]
+                errs_E = [0, 0, 0, 0]
+
+            # Normalisation
+            norm = 1 / (Omegas1[alpha] * Omegas2[beta])
+            integrals_L = [i * norm for i in integrals_L]
+            errs_L = [e * norm for e in errs_L]
+            integrals_E = [i * norm for i in integrals_E]
+            errs_E = [e * norm for e in errs_E]
+
+            return integrals_L, errs_L, integrals_E, errs_E
+
         for alpha in range(Nbin1):
+
+            for beta in range(Nbin2):
+
+                integrals_L, errs_L, integrals_E, errs_E = integral_bins(alpha, beta)
+                int_pp_L, int_px_L, int_xp_L, int_xx_L = integrals_L
+                err_pp_L, err_px_L, err_xp_L, err_xx_L = errs_L
+                int_pp_E, int_px_E, int_xp_E, int_xx_E = integrals_E
+                err_pp_E, err_px_E, err_xp_E, err_xx_E = errs_E
     
-            for beta in range(Nbin2): 
-                         
-                int_pp, err_pp = integral_bins(integrand_pp, alpha, beta)
-                int_px, err_px = integral_bins(integrand_px, alpha, beta)
-                int_xp, err_xp = integral_bins(integrand_xp, alpha, beta)
-                int_xx, err_xx = integral_bins(integrand_xx, alpha, beta)
-    
-                ncov_pp[alpha, beta] = (sigma_L**2/Nlens) * int_pp[0]
-    
-                nerr_pp[alpha, beta] = (sigma_L**2/Nlens) * err_pp[0]
-    
-                scov_pp[alpha, beta] = (L0/Nlens) * int_pp[0]
-    
-                serr_pp[alpha, beta] = (L0/Nlens) * err_pp[0]
-    
-                ncov_px[alpha, beta] = (sigma_L**2/Nlens) * int_px[0]
-    
-                nerr_px[alpha, beta] = (sigma_L**2/Nlens) * err_px[0]
-    
-                scov_px[alpha, beta] = (L0/Nlens) * int_px[0]
-    
-                serr_px[alpha, beta] = (L0/Nlens) * err_px[0]
-    
-                ncov_xp[alpha, beta] = (sigma_L**2/Nlens) * int_xp[0]
-    
-                nerr_xp[alpha, beta] = (sigma_L**2/Nlens) * err_xp[0]
-    
-                scov_xp[alpha, beta] = (L0/Nlens) * int_xp[0]
-    
-                serr_xp[alpha, beta] = (L0/Nlens) * err_xp[0]
-    
-                ncov_xx[alpha, beta] = (sigma_L**2/Nlens) * int_xx[0]
-    
-                nerr_xx[alpha, beta] = (sigma_L**2/Nlens) * err_xx[0]
-    
-                scov_xx[alpha, beta] = (L0/Nlens) * int_xx[0]
-    
-                serr_xx[alpha, beta] = (L0/Nlens) * err_xx[0]
-            
-                #addition of constant term and term with sigma_E
+                ncov_pp[alpha, beta] = (sigma_L**2/Nlens) * int_pp_L
+                nerr_pp[alpha, beta] = (sigma_L**2/Nlens) * err_pp_L
+                scov_pp[alpha, beta] = (L0/Nlens) * int_pp_L
+                serr_pp[alpha, beta] = (L0/Nlens) * err_pp_L
+
+                ncov_px[alpha, beta] = (sigma_L**2/Nlens) * int_px_L
+                nerr_px[alpha, beta] = (sigma_L**2/Nlens) * err_px_L
+                scov_px[alpha, beta] = (L0/Nlens) * int_px_L
+                serr_px[alpha, beta] = (L0/Nlens) * err_px_L
+
+                ncov_xp[alpha, beta] = (sigma_L**2/Nlens) * int_xp_L
+                nerr_xp[alpha, beta] = (sigma_L**2/Nlens) * err_xp_L
+                scov_xp[alpha, beta] = (L0/Nlens) * int_xp_L
+                serr_xp[alpha, beta] = (L0/Nlens) * err_xp_L
+
+                ncov_xx[alpha, beta] = (sigma_L**2/Nlens) * int_xx_L
+                nerr_xx[alpha, beta] = (sigma_L**2/Nlens) * err_xx_L
+                scov_xx[alpha, beta] = (L0/Nlens) * int_xx_L
+                serr_xx[alpha, beta] = (L0/Nlens) * err_xx_L
+
+                # Addition of E terms (only when B == D)
                 if B == D:
-        
-                    ncov_pp[alpha, beta] += (sigma_E**2/G_B) * int_pp[1] 
-        
-                    nerr_pp[alpha, beta] = (
-                             np.sqrt( nerr_pp[alpha, beta]**2
-                                + ( (sigma_E**2/G_B) * err_pp[1])**2 )
-                              ) 
-        
-                    scov_pp[alpha, beta] += (E0[B]/G_B) * int_pp[1] 
-        
-                    serr_pp[alpha, beta] = (
-                              np.sqrt(  serr_pp[alpha, beta]**2
-                                      + ( (E0[B]/G_B) * err_pp[1])**2 )
-                              )
-        
-                    ncov_px[alpha, beta] += (sigma_E**2/G_B) * int_px[1] 
-        
-                    nerr_px[alpha, beta] = (
-                              np.sqrt(  nerr_px[alpha, beta]**2
-                                      + ( (sigma_E**2/G_B) * err_px[1])**2 )
-                              )
-        
-                    scov_px[alpha, beta] += (E0[B]/G_B) * int_px[1] 
-        
-                    serr_px[alpha, beta] = (
-                              np.sqrt(  serr_px[alpha, beta]**2
-                                      + ( (E0[B]/G_B) * err_px[1])**2 )
-                              )
-        
-                    ncov_xp[alpha, beta] += (sigma_E**2/G_B) * int_xp[1] 
-        
-                    nerr_xp[alpha, beta] = (
-                              np.sqrt(  nerr_xp[alpha, beta]**2
-                                      + ( (sigma_E**2/G_B) * err_xp[1])**2 )
-                              )
-        
-                    scov_xp[alpha, beta] += (E0[B]/G_B) * int_xp[1] 
-        
-                    serr_xp [alpha, beta]= (
-                              np.sqrt(  serr_xp[alpha, beta]**2
-                                      + ( (E0[B]/G_B) * err_xp[1])**2 )
-                              )
-        
-                    ncov_xx[alpha, beta] += (sigma_E**2/G_B) * int_xx[1] 
-        
-                    nerr_xx[alpha, beta] = (
-                              np.sqrt(  nerr_xx[alpha, beta]**2
-                                      + ( (sigma_E**2/G_B) * err_xx[1])**2 )
-                              )
-        
-                    scov_xx[alpha, beta] += (E0[B]/G_B) * int_xx[1] 
-        
-                    serr_xx[alpha, beta] = (
-                              np.sqrt(  serr_xx[alpha, beta]**2
-                                      + ( (E0[B]/G_B) * err_xx[1])**2 )
-                              )
+                    ncov_pp[alpha, beta] += (sigma_E**2/G_B) * int_pp_E
+                    nerr_pp[alpha, beta] = np.sqrt(nerr_pp[alpha, beta]**2 + ((sigma_E**2/G_B) * err_pp_E)**2)
+                    scov_pp[alpha, beta] += (E0[B]/G_B) * int_pp_E
+                    serr_pp[alpha, beta] = np.sqrt(serr_pp[alpha, beta]**2 + ((E0[B]/G_B) * err_pp_E)**2)
+
+                    ncov_px[alpha, beta] += (sigma_E**2/G_B) * int_px_E
+                    nerr_px[alpha, beta] = np.sqrt(nerr_px[alpha, beta]**2 + ((sigma_E**2/G_B) * err_px_E)**2)
+                    scov_px[alpha, beta] += (E0[B]/G_B) * int_px_E
+                    serr_px[alpha, beta] = np.sqrt(serr_px[alpha, beta]**2 + ((E0[B]/G_B) * err_px_E)**2)
+
+                    ncov_xp[alpha, beta] += (sigma_E**2/G_B) * int_xp_E
+                    nerr_xp[alpha, beta] = np.sqrt(nerr_xp[alpha, beta]**2 + ((sigma_E**2/G_B) * err_xp_E)**2)
+                    scov_xp[alpha, beta] += (E0[B]/G_B) * int_xp_E
+                    serr_xp[alpha, beta] = np.sqrt(serr_xp[alpha, beta]**2 + ((E0[B]/G_B) * err_xp_E)**2)
+
+                    ncov_xx[alpha, beta] += (sigma_E**2/G_B) * int_xx_E
+                    nerr_xx[alpha, beta] = np.sqrt(nerr_xx[alpha, beta]**2 + ((sigma_E**2/G_B) * err_xx_E)**2)
+                    scov_xx[alpha, beta] += (E0[B]/G_B) * int_xx_E
+                    serr_xx[alpha, beta] = np.sqrt(serr_xx[alpha, beta]**2 + ((E0[B]/G_B) * err_xx_E)**2)
                 
                     Omega_anb = annuli_intersection_area(rs1[alpha], rs1[alpha+1], rs2[beta], rs2[beta+1])
     
