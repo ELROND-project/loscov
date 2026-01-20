@@ -170,6 +170,7 @@ def generate_ccov_LLLE(D):
         err_xx = np.zeros((Nbin1, Nbin2))
 
         # Wrapper for JIT-compiled integrand
+        @njit
         def integrand_all(params):
             """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
             return _ccov_integrand_LLLE(params, r_grid, LLp_grid, LLx_grid, LEp_D_grid, LEx_D_grid)
@@ -179,7 +180,7 @@ def generate_ccov_LLLE(D):
             ranges = [(0, 2*np.pi), (0, 2*np.pi),
                       (rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, r2_max)]
 
-            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Csamp)
+            integrals, errs = monte_carlo_integrate_jit(integrand_all, ranges, Csamp)
 
             # normalisation of differential elements
             norm = 2/(Omegatot * Omegas1[alpha] * Omegas2[beta])
@@ -282,6 +283,7 @@ def generate_ncov_LLLE(D):
         serr_xx = np.zeros((Nbin1, Nbin2))
 
         # Wrapper for JIT-compiled integrand
+        @njit
         def integrand_all(params):
             """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
             return _ncov_integrand_LLLE(params, r_grid, LEp_D_grid, LEx_D_grid)
@@ -290,7 +292,7 @@ def generate_ncov_LLLE(D):
             """Compute all 4 component integrals with shared samples."""
             ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
 
-            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Nsamp)
+            integrals, errs = monte_carlo_integrate_jit(integrand_all, ranges, Nsamp)
 
             # normalisation of differential elements
             norm = 1/(Omegas1[alpha] * Omegas2[beta])

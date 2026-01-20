@@ -244,6 +244,7 @@ def generate_ccov_LELE(B, D):
         err_xx = np.zeros((Nbin1, Nbin2))
 
         # Wrapper for JIT-compiled integrand
+        @njit
         def integrand_all(params):
             """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
             return _ccov_integrand_LELE(params, r_grid, LLp_grid, LLx_grid, LEp_B_grid, LEx_B_grid,
@@ -255,7 +256,7 @@ def generate_ccov_LELE(B, D):
             ranges = [(0, 2*np.pi), (0, 2*np.pi),
                       (rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, r2_max)]
 
-            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Csamp)
+            integrals, errs = monte_carlo_integrate_jit(integrand_all, ranges, Csamp)
 
             # normalisation of differential elements
             norm = 1 / (Omegatot * Omegas1[alpha] * Omegas2[beta])
@@ -376,11 +377,13 @@ def generate_ncov_LELE(B, D):
         serr_xx = np.zeros((Nbin1, Nbin2))
 
         # Wrapper for JIT-compiled L integrand
+        @njit
         def integrand_all_L(params):
             """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
             return _ncov_integrand_LELE_L(params, r_grid, EEp_BD_grid, EEx_BD_grid)
 
         # Wrapper for JIT-compiled E integrand (only used when B == D)
+        @njit
         def integrand_all_E(params):
             """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
             return _ncov_integrand_LELE_E(params, r_grid, LLp_grid, LLx_grid)
@@ -391,11 +394,11 @@ def generate_ncov_LELE(B, D):
             ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
 
             # Always compute L terms
-            integrals_L, errs_L = monte_carlo_integrate(integrand_all_L, ranges, Nsamp)
+            integrals_L, errs_L = monte_carlo_integrate_jit(integrand_all_L, ranges, Nsamp)
 
             # Compute E terms only if B == D
             if B == D:
-                integrals_E, errs_E = monte_carlo_integrate(integrand_all_E, ranges, Nsamp)
+                integrals_E, errs_E = monte_carlo_integrate_jit(integrand_all_E, ranges, Nsamp)
             else:
                 integrals_E = [0, 0, 0, 0]
                 errs_E = [0, 0, 0, 0]

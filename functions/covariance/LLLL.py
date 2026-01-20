@@ -176,10 +176,10 @@ def generate_ccov_LLLL():
         err_xx = np.zeros((Nbin1, Nbin2))
 
         # Wrapper for JIT-compiled integrand
+        @njit
         def integrand_all(params):
             """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
-            result = _ccov_integrand_LLLL(params, r_grid, LLp_grid, LLx_grid)
-            return result
+            return _ccov_integrand_LLLL(params, r_grid, LLp_grid, LLx_grid)
 
         def integral_bins(alpha, beta):
             """Compute all 4 component integrals with shared samples."""
@@ -187,7 +187,7 @@ def generate_ccov_LLLL():
             ranges = [(0, 2*np.pi), (0, 2*np.pi),
                       (rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, r2_max)]
 
-            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Csamp)
+            integrals, errs = monte_carlo_integrate_jit(integrand_all, ranges, Csamp)
 
             # normalisation of differential elements
             norm = 2 / (Omegatot * Omegas1[alpha] * Omegas2[beta])
@@ -294,17 +294,17 @@ def generate_ncov_LLLL():
         serr_xx = np.zeros((Nbin1, Nbin2))
 
         # Wrapper for JIT-compiled integrand
+        @njit
         def integrand_all(params):
             """Wrapper that calls JIT-compiled integrand with pre-computed grids."""
-            result = _ncov_integrand_LLLL(params, r_grid, LLp_grid, LLx_grid)
-            return result
+            return _ncov_integrand_LLLL(params, r_grid, LLp_grid, LLx_grid)
 
         def integral_bins(alpha, beta):
             """Compute all 4 component integrals with shared samples."""
 
             ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
 
-            integrals, errs = monte_carlo_integrate(integrand_all, ranges, Nsamp)
+            integrals, errs = monte_carlo_integrate_jit(integrand_all, ranges, Nsamp)
 
             # normalisation of differential elements
             norm = 2 / (Omegas1[alpha] * Omegas2[beta])

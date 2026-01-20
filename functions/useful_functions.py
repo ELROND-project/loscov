@@ -499,6 +499,157 @@ def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, num_batches = num_ba
     else:
         return final_integrals, errors
 
+
+@njit
+def _monte_carlo_integrate_jit_1d(func, bounds, num_samples, num_batches, rescale, seed):
+    """
+    JIT-native Monte Carlo integrator for a single-output function.
+    """
+    if seed >= 0:
+        np.random.seed(seed)
+
+    dim = bounds.shape[0]
+    batch_size = num_samples // num_batches
+
+    total_volume = 1.0
+    for d in range(dim):
+        total_volume *= (bounds[d, 1] - bounds[d, 0])
+
+    N = batch_size * num_batches
+    if N == 0:
+        return 0.0, 0.0
+
+    total_sum = 0.0
+    total_sumsq = 0.0
+
+    for _ in range(num_batches):
+        samples = np.empty((dim, batch_size))
+        for d in range(dim):
+            low = bounds[d, 0]
+            width = bounds[d, 1] - bounds[d, 0]
+            for i in range(batch_size):
+                samples[d, i] = low + width * np.random.random()
+
+        values = func(samples)
+
+        for i in range(batch_size):
+            v = values[i] * rescale
+            total_sum += v
+            total_sumsq += v * v
+
+    mean_f = total_sum / N
+    if N > 1:
+        var_f = (total_sumsq - N * mean_f * mean_f) / (N - 1)
+        if var_f < 0.0:
+            var_f = 0.0
+    else:
+        var_f = 0.0
+
+    mean_integral = total_volume * mean_f / rescale
+    std_error = total_volume * np.sqrt(var_f / N) / rescale
+
+    return mean_integral, std_error
+
+
+@njit
+def _monte_carlo_integrate_jit_2d(func, bounds, num_samples, num_batches, rescale, seed):
+    """
+    JIT-native Monte Carlo integrator for a multi-output function.
+    """
+    if seed >= 0:
+        np.random.seed(seed)
+
+    dim = bounds.shape[0]
+    batch_size = num_samples // num_batches
+    n_outputs = rescale.shape[0]
+
+    total_volume = 1.0
+    for d in range(dim):
+        total_volume *= (bounds[d, 1] - bounds[d, 0])
+
+    N = batch_size * num_batches
+    if N == 0:
+        return np.zeros(n_outputs), np.zeros(n_outputs)
+
+    total_sum = np.zeros(n_outputs)
+    total_sumsq = np.zeros(n_outputs)
+
+    for _ in range(num_batches):
+        samples = np.empty((dim, batch_size))
+        for d in range(dim):
+            low = bounds[d, 0]
+            width = bounds[d, 1] - bounds[d, 0]
+            for i in range(batch_size):
+                samples[d, i] = low + width * np.random.random()
+
+        values = func(samples)
+
+        for o in range(n_outputs):
+            r = rescale[o]
+            for i in range(batch_size):
+                v = values[o, i] * r
+                total_sum[o] += v
+                total_sumsq[o] += v * v
+
+    mean_f = total_sum / N
+    var_f = np.zeros(n_outputs)
+    for o in range(n_outputs):
+        if N > 1:
+            v = (total_sumsq[o] - N * mean_f[o] * mean_f[o]) / (N - 1)
+            if v < 0.0:
+                v = 0.0
+        else:
+            v = 0.0
+        var_f[o] = v
+
+    mean_integral = total_volume * mean_f / rescale
+    std_error = total_volume * np.sqrt(var_f / N) / rescale
+
+    return mean_integral, std_error
+
+
+def monte_carlo_integrate_jit(func, bounds, num_samples=nsamp, num_batches=num_batches, seed=None):
+    """
+    Python wrapper for the JIT-native Monte Carlo integrator.
+    """
+    if num_batches <= 0:
+        raise ValueError("num_batches must be positive.")
+
+    batch_size = int(num_samples) // int(num_batches)
+    if batch_size <= 0:
+        raise ValueError("num_samples must be >= num_batches.")
+
+    bounds_arr = np.array(bounds, dtype=np.float64)
+
+    rng = np.random.default_rng()
+    n_subsample = 100
+    subsamples = np.array([rng.uniform(low=a, high=b, size=n_subsample) for a, b in bounds])
+
+    test_output = func(subsamples)
+    if test_output.ndim == 2:
+        n_outputs = test_output.shape[0]
+        rescale = np.empty(n_outputs, dtype=np.float64)
+        for j in range(n_outputs):
+            typical_scale = np.median(np.abs(test_output[j]))
+            rescale[j] = 1.0 if typical_scale == 0 else 1.0 / typical_scale
+    else:
+        n_outputs = 1
+        typical_scale = np.median(np.abs(test_output))
+        rescale = np.array([1.0 if typical_scale == 0 else 1.0 / typical_scale], dtype=np.float64)
+
+    jit_seed = -1 if seed is None else int(seed)
+
+    if n_outputs == 1:
+        integrals, errors = _monte_carlo_integrate_jit_1d(
+            func, bounds_arr, int(num_samples), int(num_batches), rescale[0], jit_seed
+        )
+        return float(integrals), float(errors)
+
+    integrals, errors = _monte_carlo_integrate_jit_2d(
+        func, bounds_arr, int(num_samples), int(num_batches), rescale, jit_seed
+    )
+    return integrals.tolist(), errors.tolist()
+
 def test_err(error, signal, name):
 
     if signal != 0:
