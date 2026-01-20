@@ -43,9 +43,12 @@ def _ccov_integrand_LLLP(params, r_grid, LLp_grid, LLx_grid, LP_D_grid):
     c2_jd_j = cos2_jit(psi_jd - psi_j)
 
     # Interpolate correlation function values (fast grid lookup)
-    LLp_rk = interp_jit(r_k, r_grid, LLp_grid)
-    LLx_rk = interp_jit(r_k, r_grid, LLx_grid)
-    LP_rjd = interp_jit(r_jd, r_grid, LP_D_grid)
+    idx_rk, t_rk = interp_index_weight_jit(r_k, r_grid)
+    idx_rjd, t_rjd = interp_index_weight_jit(r_jd, r_grid)
+
+    LLp_rk = interp_eval_jit(idx_rk, t_rk, LLp_grid)
+    LLx_rk = interp_eval_jit(idx_rk, t_rk, LLx_grid)
+    LP_rjd = interp_eval_jit(idx_rjd, t_rjd, LP_D_grid)
 
     # Jacobian
     jacobian = 2 * np.pi * r_k * r_j * r_kd
@@ -82,7 +85,8 @@ def _ncov_integrand_LLLP(params, r_grid, LP_D_grid):
     s2_id = sin2_jit(psi_id)
 
     # Interpolate correlation function value
-    LP_rid = interp_jit(r_id, r_grid, LP_D_grid)
+    idx_rid, t_rid = interp_index_weight_jit(r_id, r_grid)
+    LP_rid = interp_eval_jit(idx_rid, t_rid, LP_D_grid)
 
     # Jacobian
     jacobian = 2 * np.pi * r_i * r_d

@@ -50,14 +50,18 @@ def _ccov_integrand_LELE(params, r_grid, LLp_grid, LLx_grid, LEp_B_grid, LEx_B_g
     s2_bd_kd = sin2_jit(psi_bd_kd)
 
     # Interpolate correlation function values (fast grid lookup)
-    LLp_rk = interp_jit(r_k, r_grid, LLp_grid)
-    LLx_rk = interp_jit(r_k, r_grid, LLx_grid)
-    EEp_rbd = interp_jit(r_bd, r_grid, EEp_BD_grid)
-    EEx_rbd = interp_jit(r_bd, r_grid, EEx_BD_grid)
-    LEp_D_rk = interp_jit(r_k, r_grid, LEp_D_grid)
-    LEx_D_rk = interp_jit(r_k, r_grid, LEx_D_grid)
-    LEp_B_rbd = interp_jit(r_bd, r_grid, LEp_B_grid)
-    LEx_B_rbd = interp_jit(r_bd, r_grid, LEx_B_grid)
+    idx_rk, t_rk = interp_index_weight_jit(r_k, r_grid)
+    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+
+    LLp_rk = interp_eval_jit(idx_rk, t_rk, LLp_grid)
+    LLx_rk = interp_eval_jit(idx_rk, t_rk, LLx_grid)
+    LEp_D_rk = interp_eval_jit(idx_rk, t_rk, LEp_D_grid)
+    LEx_D_rk = interp_eval_jit(idx_rk, t_rk, LEx_D_grid)
+
+    EEp_rbd = interp_eval_jit(idx_rbd, t_rbd, EEp_BD_grid)
+    EEx_rbd = interp_eval_jit(idx_rbd, t_rbd, EEx_BD_grid)
+    LEp_B_rbd = interp_eval_jit(idx_rbd, t_rbd, LEp_B_grid)
+    LEx_B_rbd = interp_eval_jit(idx_rbd, t_rbd, LEx_B_grid)
 
     # Common jacobian factor
     jacobian = 2 * np.pi * r_k * r_b * r_kd
@@ -124,8 +128,9 @@ def _ncov_integrand_LELE_L(params, r_grid, EEp_BD_grid, EEx_BD_grid):
     s2_bd_d = sin2_jit(psi_bd_d)
 
     # Interpolate correlation function values
-    EEp_rbd = interp_jit(r_bd, r_grid, EEp_BD_grid)
-    EEx_rbd = interp_jit(r_bd, r_grid, EEx_BD_grid)
+    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    EEp_rbd = interp_eval_jit(idx_rbd, t_rbd, EEp_BD_grid)
+    EEx_rbd = interp_eval_jit(idx_rbd, t_rbd, EEx_BD_grid)
 
     # Jacobian (factor of 2 absorbed into 1/2 prefactor)
     jacobian = np.pi * r_b * r_d
@@ -170,8 +175,9 @@ def _ncov_integrand_LELE_E(params, r_grid, LLp_grid, LLx_grid):
     s2_bd_d = sin2_jit(psi_bd_d)
 
     # Interpolate correlation function values
-    LLp_rbd = interp_jit(r_bd, r_grid, LLp_grid)
-    LLx_rbd = interp_jit(r_bd, r_grid, LLx_grid)
+    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    LLp_rbd = interp_eval_jit(idx_rbd, t_rbd, LLp_grid)
+    LLx_rbd = interp_eval_jit(idx_rbd, t_rbd, LLx_grid)
 
     # Jacobian
     jacobian = np.pi * r_b * r_d

@@ -36,11 +36,14 @@ def _ccov_integrand_LPLP(params, r_grid, LLp_grid, LLx_grid, LP_B_grid, LP_D_gri
     psi_bd = cos_law_angle_jit(r_kd, r_bd, r_kb) + psi_kd
 
     # Interpolate correlation function values
-    LLp_rk = interp_jit(r_k, r_grid, LLp_grid)
-    LLx_rk = interp_jit(r_k, r_grid, LLx_grid)
-    LP_B_rk = interp_jit(r_k, r_grid, LP_B_grid)
-    LP_D_rbd = interp_jit(r_bd, r_grid, LP_D_grid)
-    PP_rbd = interp_jit(r_bd, r_grid, PP_BD_grid)
+    idx_rk, t_rk = interp_index_weight_jit(r_k, r_grid)
+    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+
+    LLp_rk = interp_eval_jit(idx_rk, t_rk, LLp_grid)
+    LLx_rk = interp_eval_jit(idx_rk, t_rk, LLx_grid)
+    LP_B_rk = interp_eval_jit(idx_rk, t_rk, LP_B_grid)
+    LP_D_rbd = interp_eval_jit(idx_rbd, t_rbd, LP_D_grid)
+    PP_rbd = interp_eval_jit(idx_rbd, t_rbd, PP_BD_grid)
 
     # Pre-compute trig functions
     c2_b = cos2_jit(psi_b)
@@ -81,9 +84,10 @@ def _ncov_integrand_LPLP_BD_equal(params, r_grid, LLp_grid, LLx_grid, PP_BD_grid
     s2_ik_k = sin2_jit(diff_ik_k)
 
     # Interpolate correlation function values
-    LLp_rik = interp_jit(r_ik, r_grid, LLp_grid)
-    LLx_rik = interp_jit(r_ik, r_grid, LLx_grid)
-    PP_rik = interp_jit(r_ik, r_grid, PP_BD_grid)
+    idx_rik, t_rik = interp_index_weight_jit(r_ik, r_grid)
+    LLp_rik = interp_eval_jit(idx_rik, t_rik, LLp_grid)
+    LLx_rik = interp_eval_jit(idx_rik, t_rik, LLx_grid)
+    PP_rik = interp_eval_jit(idx_rik, t_rik, PP_BD_grid)
 
     # Jacobian
     jacobian = 2 * np.pi * r_i * r_k
@@ -117,7 +121,8 @@ def _ncov_integrand_LPLP_BD_diff(params, r_grid, PP_BD_grid):
     c2_k = cos2_jit(psi_k)
 
     # Interpolate correlation function value
-    PP_rik = interp_jit(r_ik, r_grid, PP_BD_grid)
+    idx_rik, t_rik = interp_index_weight_jit(r_ik, r_grid)
+    PP_rik = interp_eval_jit(idx_rik, t_rik, PP_BD_grid)
 
     f = 0.5 * PP_rik * c2_k
 

@@ -43,12 +43,15 @@ def _ccov_integrand_LELP(params, r_grid, LLp_grid, LLx_grid, LEp_B_grid, LEx_B_g
     c2_bd_b = cos2_jit(psi_bd - psi_b)
 
     # Interpolate correlation function values (fast grid lookup)
-    LLp_rk = interp_jit(r_k, r_grid, LLp_grid)
-    LLx_rk = interp_jit(r_k, r_grid, LLx_grid)
-    LEp_rk = interp_jit(r_k, r_grid, LEp_B_grid)
-    LEx_rk = interp_jit(r_k, r_grid, LEx_B_grid)
-    EP_rbd = interp_jit(r_bd, r_grid, EP_BD_grid)
-    LP_rbd = interp_jit(r_bd, r_grid, LP_D_grid)
+    idx_rk, t_rk = interp_index_weight_jit(r_k, r_grid)
+    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+
+    LLp_rk = interp_eval_jit(idx_rk, t_rk, LLp_grid)
+    LLx_rk = interp_eval_jit(idx_rk, t_rk, LLx_grid)
+    LEp_rk = interp_eval_jit(idx_rk, t_rk, LEp_B_grid)
+    LEx_rk = interp_eval_jit(idx_rk, t_rk, LEx_B_grid)
+    EP_rbd = interp_eval_jit(idx_rbd, t_rbd, EP_BD_grid)
+    LP_rbd = interp_eval_jit(idx_rbd, t_rbd, LP_D_grid)
 
     # Jacobian
     jacobian = 2 * np.pi * r_k * r_b * r_kd
@@ -88,7 +91,8 @@ def _ncov_integrand_LELP(params, r_grid, EP_BD_grid):
     s2_bd = sin2_jit(psi_bd)
 
     # Interpolate correlation function value
-    EP_rbd = interp_jit(r_bd, r_grid, EP_BD_grid)
+    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    EP_rbd = interp_eval_jit(idx_rbd, t_rbd, EP_BD_grid)
 
     # Jacobian (factor of 2 cancels with half out the front)
     jacobian = np.pi * r_b * r_d

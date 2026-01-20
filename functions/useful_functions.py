@@ -137,6 +137,59 @@ def interp_jit(x, xp, fp):
     return result
 
 
+@njit
+def interp_index_weight_jit(x, xp):
+    """
+    Pre-compute indices and weights for linear interpolation on a fixed grid.
+    Returns:
+        idx: lower grid indices for each x
+        t: interpolation weights in [0, 1]
+    """
+    n = len(x)
+    idx = np.empty(n, dtype=np.int64)
+    t = np.empty(n)
+    nxp = len(xp)
+
+    for i in range(n):
+        xi = x[i]
+        if xi <= xp[0]:
+            idx[i] = 0
+            t[i] = 0.0
+        elif xi >= xp[nxp - 1]:
+            idx[i] = nxp - 2
+            t[i] = 1.0
+        else:
+            lo = 0
+            hi = nxp - 1
+            while hi - lo > 1:
+                mid = (lo + hi) // 2
+                if xp[mid] <= xi:
+                    lo = mid
+                else:
+                    hi = mid
+            idx[i] = lo
+            denom = xp[lo + 1] - xp[lo]
+            if denom == 0:
+                t[i] = 0.0
+            else:
+                t[i] = (xi - xp[lo]) / denom
+
+    return idx, t
+
+
+@njit
+def interp_eval_jit(idx, t, fp):
+    """
+    Evaluate linear interpolation given pre-computed indices and weights.
+    """
+    n = len(idx)
+    result = np.empty(n)
+    for i in range(n):
+        j = idx[i]
+        result[i] = fp[j] + t[i] * (fp[j + 1] - fp[j])
+    return result
+
+
 def spline_to_grid(spline_func, r_min, r_max, n_points=1000):
     """
     Convert a spline function to a grid for fast JIT-compatible interpolation.
