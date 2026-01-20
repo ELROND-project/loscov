@@ -155,31 +155,30 @@ def generate_ccov_LELE(B, D):
     #ccov_pp
 
     ccov_pp, ccov_px, ccov_xp, ccov_xx, errpp = generate_matrices('plus', 'plus')
-    
+
     ccovpp = ccov_pp + ccov_px + ccov_xp + ccov_xx
 
     #ccov_pm
 
     ccov_pp, ccov_px, ccov_xp, ccov_xx, errpm = generate_matrices('plus', 'minus')
-    
+
     ccovpm = ccov_pp - ccov_px + ccov_xp - ccov_xx
 
-    #ccov_mp
+    #ccov_mp: use transpose relationship Cov(ξ-_α, ξ+_β) = Cov(ξ+_β, ξ-_α)
+    # This avoids computing generate_matrices('minus', 'plus')
 
-    ccov_pp, ccov_px, ccov_xp, ccov_xx, errmp = generate_matrices('minus', 'plus')
-
-    ccovmp = ccov_pp + ccov_px - ccov_xp - ccov_xx
+    ccovmp = ccovpm.T
+    errmp = errpm.T
 
     #ccov_mm
 
     ccov_pp, ccov_px, ccov_xp, ccov_xx, errmm = generate_matrices('minus', 'minus')
-    
+
     ccovmm = ccov_pp - ccov_px - ccov_xp + ccov_xx
 
-    
     ccov = np.block([[ccovmm, ccovmp],
                      [ccovpm, ccovpp]])
-    
+
     err = np.block([[errmm, errmp],
                      [errpm, errpp]])
     
@@ -424,41 +423,41 @@ def generate_ncov_LELE(B, D):
     #plus plus
 
     ncov_pp, ncov_px, ncov_xp, ncov_xx, scov_pp, scov_px, scov_xp, scov_xx, nerrpp, serrpp = generate_matrices('plus', 'plus')
-    
-    ncovpp = ncov_pp + ncov_px + ncov_xp + ncov_xx    
+
+    ncovpp = ncov_pp + ncov_px + ncov_xp + ncov_xx
     scovpp = scov_pp + scov_px + scov_xp + scov_xx
 
     #plus minus
 
     ncov_pp, ncov_px, ncov_xp, ncov_xx, scov_pp, scov_px, scov_xp, scov_xx, nerrpm, serrpm = generate_matrices('plus', 'minus')
-    
+
     ncovpm = ncov_pp - ncov_px + ncov_xp - ncov_xx
     scovpm = scov_pp - scov_px + scov_xp - scov_xx
 
-    #minus plus
+    #minus plus: use transpose relationship Cov(ξ-_α, ξ+_β) = Cov(ξ+_β, ξ-_α)
+    # This avoids computing generate_matrices('minus', 'plus')
 
-    ncov_pp, ncov_px, ncov_xp, ncov_xx, scov_pp, scov_px, scov_xp, scov_xx, nerrmp, serrmp = generate_matrices('minus', 'plus')
-    
-    ncovmp = ncov_pp + ncov_px - ncov_xp - ncov_xx
-    scovmp = scov_pp + scov_px - scov_xp - scov_xx
+    ncovmp = ncovpm.T
+    scovmp = scovpm.T
+    nerrmp = nerrpm.T
+    serrmp = serrpm.T
 
     #minus minus
 
     ncov_pp, ncov_px, ncov_xp, ncov_xx, scov_pp, scov_px, scov_xp, scov_xx, nerrmm, serrmm = generate_matrices('minus', 'minus')
-    
+
     ncovmm = ncov_pp - ncov_px - ncov_xp + ncov_xx
     scovmm = scov_pp - scov_px - scov_xp + scov_xx
 
-    
     ncov = np.block([[ncovmm, ncovmp],
                      [ncovpm, ncovpp]])
-    
+
     nerr = np.block([[nerrmm, nerrmp],
                      [nerrpm, nerrpp]])
-    
+
     scov = np.block([[scovmm, scovmp],
                      [scovpm, scovpp]])
-    
+
     serr = np.block([[serrmm, serrmp],
                      [serrpm, serrpp]])
     
