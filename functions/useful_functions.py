@@ -190,7 +190,10 @@ def interp_eval_jit(idx, t, fp):
     return result
 
 
-def spline_to_grid(spline_func, r_min, r_max, n_points=1000):
+_GRID_CACHE = {}
+
+
+def spline_to_grid(spline_func, r_min, r_max, n_points=1000, use_cache=True):
     """
     Convert a spline function to a grid for fast JIT-compatible interpolation.
 
@@ -204,8 +207,17 @@ def spline_to_grid(spline_func, r_min, r_max, n_points=1000):
         r_grid: 1D array of r values
         f_grid: 1D array of function values at r_grid
     """
+    cache_key = None
+    if use_cache:
+        cache_key = (id(spline_func), float(r_min), float(r_max), int(n_points))
+        cached = _GRID_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
+
     r_grid = np.linspace(r_min, r_max, n_points)
     f_grid = spline_func(r_grid)
+    if use_cache:
+        _GRID_CACHE[cache_key] = (r_grid, f_grid)
     return r_grid, f_grid
 
 
