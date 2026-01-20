@@ -135,10 +135,11 @@ def generate_ccov_LLLE(D):
 
     # Pre-compute grids for fast JIT-compiled interpolation (done once for all sign combinations)
     n_grid_points = 2000
-    r_grid, LLp_grid = spline_to_grid(LLp, 0, r2_max, n_points=n_grid_points)
-    _, LLx_grid = spline_to_grid(LLx, 0, r2_max, n_points=n_grid_points)
-    _, LEp_D_grid = spline_to_grid(LEp[D], 0, r2_max, n_points=n_grid_points)
-    _, LEx_D_grid = spline_to_grid(LEx[D], 0, r2_max, n_points=n_grid_points)
+    r_grid_max = min(3 * r2_max, Thetamax)
+    r_grid, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=n_grid_points)
+    _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=n_grid_points)
+    _, LEp_D_grid = spline_to_grid(LEp[D], 0, r_grid_max, n_points=n_grid_points)
+    _, LEx_D_grid = spline_to_grid(LEx[D], 0, r_grid_max, n_points=n_grid_points)
 
     def generate_matrices(sign1, sign2):
 
@@ -238,8 +239,9 @@ def generate_ncov_LLLE(D):
 
     # Pre-compute grids for fast JIT-compiled interpolation (done once for all sign combinations)
     n_grid_points = 2000
-    r_grid, LEp_D_grid = spline_to_grid(LEp[D], 0, r2_max, n_points=n_grid_points)
-    _, LEx_D_grid = spline_to_grid(LEx[D], 0, r2_max, n_points=n_grid_points)
+    r_grid_max = min(3 * r2_max, Thetamax)
+    r_grid, LEp_D_grid = spline_to_grid(LEp[D], 0, r_grid_max, n_points=n_grid_points)
+    _, LEx_D_grid = spline_to_grid(LEx[D], 0, r_grid_max, n_points=n_grid_points)
 
     def generate_matrices(sign1, sign2):
 

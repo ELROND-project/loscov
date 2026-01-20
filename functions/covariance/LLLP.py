@@ -110,9 +110,10 @@ def generate_ccov_LLLP(D):
 
     # Pre-compute grids for fast JIT-compiled interpolation (done once for all sign combinations)
     n_grid_points = 2000
-    r_grid, LLp_grid = spline_to_grid(LLp, 0, r2_max, n_points=n_grid_points)
-    _, LLx_grid = spline_to_grid(LLx, 0, r2_max, n_points=n_grid_points)
-    _, LP_D_grid = spline_to_grid(LP[D], 0, r2_max, n_points=n_grid_points)
+    r_grid_max = min(3 * r2_max, Thetamax)
+    r_grid, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=n_grid_points)
+    _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=n_grid_points)
+    _, LP_D_grid = spline_to_grid(LP[D], 0, r_grid_max, n_points=n_grid_points)
 
     def generate_matrices(sign):
 
@@ -198,7 +199,8 @@ def generate_ncov_LLLP(D):
 
     # Pre-compute grids for fast JIT-compiled interpolation (done once for all sign combinations)
     n_grid_points = 2000
-    r_grid, LP_D_grid = spline_to_grid(LP[D], 0, r2_max, n_points=n_grid_points)
+    r_grid_max = min(3 * r2_max, Thetamax)
+    r_grid, LP_D_grid = spline_to_grid(LP[D], 0, r_grid_max, n_points=n_grid_points)
 
     def generate_matrices(sign):
 

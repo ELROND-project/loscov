@@ -139,11 +139,12 @@ def generate_ccov_LPLP(B, D):
 
     # Pre-compute grids for fast JIT-compiled interpolation
     n_grid_points = 2000
-    r_grid, LLp_grid = spline_to_grid(LLp, 0, r2_max, n_points=n_grid_points)
-    _, LLx_grid = spline_to_grid(LLx, 0, r2_max, n_points=n_grid_points)
-    _, LP_B_grid = spline_to_grid(LP[B], 0, r2_max, n_points=n_grid_points)
-    _, LP_D_grid = spline_to_grid(LP[D], 0, r2_max, n_points=n_grid_points)
-    _, PP_BD_grid = spline_to_grid(PP[B][D], 0, r2_max, n_points=n_grid_points)
+    r_grid_max = min(3 * r2_max, Thetamax)
+    r_grid, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=n_grid_points)
+    _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=n_grid_points)
+    _, LP_B_grid = spline_to_grid(LP[B], 0, r_grid_max, n_points=n_grid_points)
+    _, LP_D_grid = spline_to_grid(LP[D], 0, r_grid_max, n_points=n_grid_points)
+    _, PP_BD_grid = spline_to_grid(PP[B][D], 0, r_grid_max, n_points=n_grid_points)
 
     angular_distribution1 = angular_distributions['LP'][B]
     angular_distribution2 = angular_distributions['LP'][D]
@@ -205,10 +206,11 @@ def generate_ncov_LPLP(B, D):
 
     # Pre-compute grids for fast JIT-compiled interpolation
     n_grid_points = 2000
-    r_grid, PP_BD_grid = spline_to_grid(PP[B][D], 0, r2_max, n_points=n_grid_points)
+    r_grid_max = min(3 * r2_max, Thetamax)
+    r_grid, PP_BD_grid = spline_to_grid(PP[B][D], 0, r_grid_max, n_points=n_grid_points)
     if B == D:
-        _, LLp_grid = spline_to_grid(LLp, 0, r2_max, n_points=n_grid_points)
-        _, LLx_grid = spline_to_grid(LLx, 0, r2_max, n_points=n_grid_points)
+        _, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=n_grid_points)
+        _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=n_grid_points)
     else:
         LLp_grid = None
         LLx_grid = None

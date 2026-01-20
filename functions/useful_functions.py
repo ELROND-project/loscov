@@ -84,13 +84,19 @@ def cos2_jit(x):
 @njit
 def cos_law_side_jit(b, c, A):
     """JIT-compiled law of cosines to find side a given sides b, c and angle A."""
-    return np.sqrt(b**2 + c**2 - 2*b*c*np.cos(A))
+    value = b**2 + c**2 - 2*b*c*np.cos(A)
+    # Clip small negative values to avoid NaNs from roundoff.
+    value = np.maximum(value, 0.0)
+    return np.sqrt(value)
 
 @njit
 def cos_law_angle_jit(b, c, a):
     """JIT-compiled law of cosines to find angle A given sides a, b, c."""
-    cos_angle = (b**2 + c**2 - a**2) / (2 * b * c)
-    # Clip to [-1, 1] to handle numerical precision issues
+    denom = 2 * b * c
+    cos_angle = (b**2 + c**2 - a**2) / denom
+    # Guard degenerate triangles to avoid NaNs.
+    cos_angle = np.where(denom == 0, 1.0, cos_angle)
+    # Clip to [-1, 1] to handle numerical precision issues.
     cos_angle = np.minimum(np.maximum(cos_angle, -1.0), 1.0)
     return np.arccos(cos_angle)
 
