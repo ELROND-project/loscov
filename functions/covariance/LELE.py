@@ -49,9 +49,12 @@ def _ccov_integrand_LELE(params, r_grid, LLp_grid, LLx_grid, LEp_B_grid, LEx_B_g
     c2_bd_kd = cos2_jit(psi_bd_kd)
     s2_bd_kd = sin2_jit(psi_bd_kd)
 
-    # Interpolate correlation function values (fast grid lookup)
-    idx_rk, t_rk = interp_index_weight_jit(r_k, r_grid)
-    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    # Interpolate correlation function values (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rk, t_rk = interp_index_weight_uniform_jit(r_k, r_min, inv_dx, n_grid)
+    idx_rbd, t_rbd = interp_index_weight_uniform_jit(r_bd, r_min, inv_dx, n_grid)
 
     LLp_rk = interp_eval_jit(idx_rk, t_rk, LLp_grid)
     LLx_rk = interp_eval_jit(idx_rk, t_rk, LLx_grid)
@@ -127,8 +130,11 @@ def _ncov_integrand_LELE_L(params, r_grid, EEp_BD_grid, EEx_BD_grid):
     c2_bd_d = cos2_jit(psi_bd_d)
     s2_bd_d = sin2_jit(psi_bd_d)
 
-    # Interpolate correlation function values
-    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    # Interpolate correlation function values (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rbd, t_rbd = interp_index_weight_uniform_jit(r_bd, r_min, inv_dx, n_grid)
     EEp_rbd = interp_eval_jit(idx_rbd, t_rbd, EEp_BD_grid)
     EEx_rbd = interp_eval_jit(idx_rbd, t_rbd, EEx_BD_grid)
 
@@ -174,8 +180,11 @@ def _ncov_integrand_LELE_E(params, r_grid, LLp_grid, LLx_grid):
     c2_bd_d = cos2_jit(psi_bd_d)
     s2_bd_d = sin2_jit(psi_bd_d)
 
-    # Interpolate correlation function values
-    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    # Interpolate correlation function values (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rbd, t_rbd = interp_index_weight_uniform_jit(r_bd, r_min, inv_dx, n_grid)
     LLp_rbd = interp_eval_jit(idx_rbd, t_rbd, LLp_grid)
     LLx_rbd = interp_eval_jit(idx_rbd, t_rbd, LLx_grid)
 

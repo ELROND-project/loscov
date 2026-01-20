@@ -47,9 +47,12 @@ def _ccov_integrand_LLLE(params, r_grid, LLp_grid, LLx_grid, LEp_D_grid, LEx_D_g
     c2_jd_kd = cos2_jit(diff_jd_kd)
     s2_jd_kd = sin2_jit(diff_jd_kd)
 
-    # Interpolate correlation function values (fast grid lookup)
-    idx_rk, t_rk = interp_index_weight_jit(r_k, r_grid)
-    idx_rjd, t_rjd = interp_index_weight_jit(r_jd, r_grid)
+    # Interpolate correlation function values (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rk, t_rk = interp_index_weight_uniform_jit(r_k, r_min, inv_dx, n_grid)
+    idx_rjd, t_rjd = interp_index_weight_uniform_jit(r_jd, r_min, inv_dx, n_grid)
 
     LLp_rk = interp_eval_jit(idx_rk, t_rk, LLp_grid)
     LLx_rk = interp_eval_jit(idx_rk, t_rk, LLx_grid)
@@ -104,8 +107,11 @@ def _ncov_integrand_LLLE(params, r_grid, LEp_D_grid, LEx_D_grid):
     c2_jd_d = cos2_jit(diff_jd_d)
     s2_jd_d = sin2_jit(diff_jd_d)
 
-    # Interpolate correlation function values
-    idx_rjd, t_rjd = interp_index_weight_jit(r_jd, r_grid)
+    # Interpolate correlation function values (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rjd, t_rjd = interp_index_weight_uniform_jit(r_jd, r_min, inv_dx, n_grid)
     LEp_rjd = interp_eval_jit(idx_rjd, t_rjd, LEp_D_grid)
     LEx_rjd = interp_eval_jit(idx_rjd, t_rjd, LEx_D_grid)
 

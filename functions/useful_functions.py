@@ -178,6 +178,34 @@ def interp_index_weight_jit(x, xp):
 
 
 @njit
+def interp_index_weight_uniform_jit(x, x_min, inv_dx, n):
+    """
+    Pre-compute indices and weights for linear interpolation on a uniform grid.
+    """
+    m = len(x)
+    idx = np.empty(m, dtype=np.int64)
+    t = np.empty(m)
+    dx = 1.0 / inv_dx
+
+    for i in range(m):
+        xi = x[i]
+        if xi <= x_min:
+            idx[i] = 0
+            t[i] = 0.0
+        else:
+            rel = (xi - x_min) * inv_dx
+            j = int(rel)
+            if j >= n - 1:
+                idx[i] = n - 2
+                t[i] = 1.0
+            else:
+                idx[i] = j
+                t[i] = (xi - (x_min + j * dx)) * inv_dx
+
+    return idx, t
+
+
+@njit
 def interp_eval_jit(idx, t, fp):
     """
     Evaluate linear interpolation given pre-computed indices and weights.
@@ -500,7 +528,7 @@ def monte_carlo_integrate(funcs, bounds, num_samples=nsamp, num_batches = num_ba
         return final_integrals, errors
 
 
-@njit
+@njit(parallel=True)
 def _monte_carlo_integrate_jit_1d(func, bounds, num_samples, num_batches, rescale, seed):
     """
     JIT-native Monte Carlo integrator for a single-output function.
@@ -519,10 +547,10 @@ def _monte_carlo_integrate_jit_1d(func, bounds, num_samples, num_batches, rescal
     if N == 0:
         return 0.0, 0.0
 
-    total_sum = 0.0
-    total_sumsq = 0.0
+    batch_sum = np.zeros(num_batches)
+    batch_sumsq = np.zeros(num_batches)
 
-    for _ in range(num_batches):
+    for b in prange(num_batches):
         samples = np.empty((dim, batch_size))
         for d in range(dim):
             low = bounds[d, 0]
@@ -532,10 +560,21 @@ def _monte_carlo_integrate_jit_1d(func, bounds, num_samples, num_batches, rescal
 
         values = func(samples)
 
+        sum_b = 0.0
+        sumsq_b = 0.0
         for i in range(batch_size):
             v = values[i] * rescale
-            total_sum += v
-            total_sumsq += v * v
+            sum_b += v
+            sumsq_b += v * v
+
+        batch_sum[b] = sum_b
+        batch_sumsq[b] = sumsq_b
+
+    total_sum = 0.0
+    total_sumsq = 0.0
+    for b in range(num_batches):
+        total_sum += batch_sum[b]
+        total_sumsq += batch_sumsq[b]
 
     mean_f = total_sum / N
     if N > 1:
@@ -551,7 +590,7 @@ def _monte_carlo_integrate_jit_1d(func, bounds, num_samples, num_batches, rescal
     return mean_integral, std_error
 
 
-@njit
+@njit(parallel=True)
 def _monte_carlo_integrate_jit_2d(func, bounds, num_samples, num_batches, rescale, seed):
     """
     JIT-native Monte Carlo integrator for a multi-output function.
@@ -571,10 +610,10 @@ def _monte_carlo_integrate_jit_2d(func, bounds, num_samples, num_batches, rescal
     if N == 0:
         return np.zeros(n_outputs), np.zeros(n_outputs)
 
-    total_sum = np.zeros(n_outputs)
-    total_sumsq = np.zeros(n_outputs)
+    batch_sum = np.zeros((num_batches, n_outputs))
+    batch_sumsq = np.zeros((num_batches, n_outputs))
 
-    for _ in range(num_batches):
+    for b in prange(num_batches):
         samples = np.empty((dim, batch_size))
         for d in range(dim):
             low = bounds[d, 0]
@@ -586,10 +625,21 @@ def _monte_carlo_integrate_jit_2d(func, bounds, num_samples, num_batches, rescal
 
         for o in range(n_outputs):
             r = rescale[o]
+            sum_b = 0.0
+            sumsq_b = 0.0
             for i in range(batch_size):
                 v = values[o, i] * r
-                total_sum[o] += v
-                total_sumsq[o] += v * v
+                sum_b += v
+                sumsq_b += v * v
+            batch_sum[b, o] = sum_b
+            batch_sumsq[b, o] = sumsq_b
+
+    total_sum = np.zeros(n_outputs)
+    total_sumsq = np.zeros(n_outputs)
+    for b in range(num_batches):
+        for o in range(n_outputs):
+            total_sum[o] += batch_sum[b, o]
+            total_sumsq[o] += batch_sumsq[b, o]
 
     mean_f = total_sum / N
     var_f = np.zeros(n_outputs)

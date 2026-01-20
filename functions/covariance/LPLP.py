@@ -35,9 +35,12 @@ def _ccov_integrand_LPLP(params, r_grid, LLp_grid, LLx_grid, LP_B_grid, LP_D_gri
     r_bd = cos_law_side_jit(r_kd, r_kb, (psi_kd - psi_kb))
     psi_bd = cos_law_angle_jit(r_kd, r_bd, r_kb) + psi_kd
 
-    # Interpolate correlation function values
-    idx_rk, t_rk = interp_index_weight_jit(r_k, r_grid)
-    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    # Interpolate correlation function values (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rk, t_rk = interp_index_weight_uniform_jit(r_k, r_min, inv_dx, n_grid)
+    idx_rbd, t_rbd = interp_index_weight_uniform_jit(r_bd, r_min, inv_dx, n_grid)
 
     LLp_rk = interp_eval_jit(idx_rk, t_rk, LLp_grid)
     LLx_rk = interp_eval_jit(idx_rk, t_rk, LLx_grid)
@@ -83,8 +86,11 @@ def _ncov_integrand_LPLP_BD_equal(params, r_grid, LLp_grid, LLx_grid, PP_BD_grid
     c2_ik_k = cos2_jit(diff_ik_k)
     s2_ik_k = sin2_jit(diff_ik_k)
 
-    # Interpolate correlation function values
-    idx_rik, t_rik = interp_index_weight_jit(r_ik, r_grid)
+    # Interpolate correlation function values (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rik, t_rik = interp_index_weight_uniform_jit(r_ik, r_min, inv_dx, n_grid)
     LLp_rik = interp_eval_jit(idx_rik, t_rik, LLp_grid)
     LLx_rik = interp_eval_jit(idx_rik, t_rik, LLx_grid)
     PP_rik = interp_eval_jit(idx_rik, t_rik, PP_BD_grid)
@@ -120,8 +126,11 @@ def _ncov_integrand_LPLP_BD_diff(params, r_grid, PP_BD_grid):
     # Pre-compute trig function
     c2_k = cos2_jit(psi_k)
 
-    # Interpolate correlation function value
-    idx_rik, t_rik = interp_index_weight_jit(r_ik, r_grid)
+    # Interpolate correlation function value (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rik, t_rik = interp_index_weight_uniform_jit(r_ik, r_min, inv_dx, n_grid)
     PP_rik = interp_eval_jit(idx_rik, t_rik, PP_BD_grid)
 
     f = 0.5 * PP_rik * c2_k

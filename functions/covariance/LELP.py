@@ -42,9 +42,12 @@ def _ccov_integrand_LELP(params, r_grid, LLp_grid, LLx_grid, LEp_B_grid, LEx_B_g
     s2_kd = sin2_jit(psi_kd)
     c2_bd_b = cos2_jit(psi_bd - psi_b)
 
-    # Interpolate correlation function values (fast grid lookup)
-    idx_rk, t_rk = interp_index_weight_jit(r_k, r_grid)
-    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    # Interpolate correlation function values (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rk, t_rk = interp_index_weight_uniform_jit(r_k, r_min, inv_dx, n_grid)
+    idx_rbd, t_rbd = interp_index_weight_uniform_jit(r_bd, r_min, inv_dx, n_grid)
 
     LLp_rk = interp_eval_jit(idx_rk, t_rk, LLp_grid)
     LLx_rk = interp_eval_jit(idx_rk, t_rk, LLx_grid)
@@ -90,8 +93,11 @@ def _ncov_integrand_LELP(params, r_grid, EP_BD_grid):
     c2_bd = cos2_jit(psi_bd)
     s2_bd = sin2_jit(psi_bd)
 
-    # Interpolate correlation function value
-    idx_rbd, t_rbd = interp_index_weight_jit(r_bd, r_grid)
+    # Interpolate correlation function value (fast uniform-grid lookup)
+    r_min = r_grid[0]
+    inv_dx = 1.0 / (r_grid[1] - r_grid[0])
+    n_grid = len(r_grid)
+    idx_rbd, t_rbd = interp_index_weight_uniform_jit(r_bd, r_min, inv_dx, n_grid)
     EP_rbd = interp_eval_jit(idx_rbd, t_rbd, EP_BD_grid)
 
     # Jacobian (factor of 2 cancels with half out the front)

@@ -150,7 +150,7 @@ nsamp_string = '1e6'
 nsamp = int(float(nsamp_string))
 Csamp = nsamp*10        #default number of samples in the Monte Carlo integrator for triple cosmic integrals
 Nsamp = nsamp           #default number of samples in the Monte Carlo integrator for double noise/sparsity integrals
-num_batches = 1000     #should be > maxsamp * 373 / (ram per node)
+num_batches = 200     #controls Monte Carlo batching; lower reduces overhead for large runs
 desired_error = 1       #percentage desired fractional error in integrals
 warning_level = 500     #level above which we print an integration error
 total_error_threshold = 0.2  #the threshold for the total error on a term to be too high and to print a warning
@@ -236,4 +236,3 @@ if supply_binscheme == False:
 
 if not os.path.exists(f'correlations_NE={Nbinz_E}_NP={Nbinz_P}{correlation_notes}'):
     compute_correlations = True      
-
