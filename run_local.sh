@@ -29,7 +29,7 @@ export LOSCOV_CSAMP="${LOSCOV_CSAMP:-8192}"
 export LOSCOV_NUM_RANDOMIZATIONS="${LOSCOV_NUM_RANDOMIZATIONS:-8}"
 
 # Data output root and run stamp for unique output folders.
-export LOSCOV_DATA_ROOT="${LOSCOV_DATA_ROOT:-${ROOT_DIR}/data/my_results}"
+export LOSCOV_DATA_ROOT="${LOSCOV_DATA_ROOT:-${ROOT_DIR}/data/results}"
 export LOSCOV_RUN_STAMP="${LOSCOV_RUN_STAMP:-$(date +%y%m%d_%H%M)}"
 mkdir -p "${LOSCOV_DATA_ROOT}"
 
