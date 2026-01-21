@@ -154,8 +154,8 @@ def generate_ccov_LLLL():
 
     # Pre-compute grids for fast JIT-compiled interpolation
     r_grid_max = min(3 * r2_max, Thetamax)
-    r_grid, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=2000)
-    _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=2000)
+    r_grid, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=5000)
+    _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=5000)
 
     def generate_matrices(sign1, sign2):
 
@@ -261,8 +261,8 @@ def generate_ncov_LLLL():
 
     # Pre-compute grids for fast JIT-compiled interpolation
     r_grid_max = min(3 * r2_max, Thetamax)
-    r_grid, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=2000)
-    _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=2000)
+    r_grid, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=5000)
+    _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=5000)
 
     def generate_matrices(sign1, sign2):
 

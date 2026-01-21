@@ -217,7 +217,7 @@ def generate_ccov_LELE(B, D):
     """
 
     # Pre-compute grids for fast JIT-compiled interpolation (done once for all sign combinations)
-    n_grid_points = 2000
+    n_grid_points = 5000
     r_grid_max = min(3 * r2_max, Thetamax)
     r_grid, LLp_grid = spline_to_grid(LLp, 0, r_grid_max, n_points=n_grid_points)
     _, LLx_grid = spline_to_grid(LLx, 0, r_grid_max, n_points=n_grid_points)
@@ -335,7 +335,7 @@ def generate_ncov_LELE(B, D):
     """
 
     # Pre-compute grids for fast JIT-compiled interpolation (done once for all sign combinations)
-    n_grid_points = 2000
+    n_grid_points = 5000
     r_grid_max = min(3 * r2_max, Thetamax)
     r_grid, EEp_BD_grid = spline_to_grid(EEp[B][D], 0, r_grid_max, n_points=n_grid_points)
     _, EEx_BD_grid = spline_to_grid(EEx[B][D], 0, r_grid_max, n_points=n_grid_points)
