@@ -155,8 +155,8 @@ def _env_int(name, default):
     except ValueError:
         return int(float(value))
 
-nsamp = _env_int("LOSCOV_NSAMP", 2**13)           # power of 2 for optimal Sobol sequence properties
-Csamp = _env_int("LOSCOV_CSAMP", 2**13)           # samples for triple cosmic integrals
+nsamp = _env_int("LOSCOV_NSAMP", 2**17)           # power of 2 for optimal Sobol sequence properties
+Csamp = _env_int("LOSCOV_CSAMP", 2**17)           # samples for triple cosmic integrals
 Nsamp = _env_int("LOSCOV_NSAMP_NOISE", nsamp)     # samples for double noise/sparsity integrals
 num_batches = 200       # controls Monte Carlo batching; lower reduces overhead for large runs
 desired_error = 1       #percentage desired fractional error in integrals
