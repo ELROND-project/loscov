@@ -5,7 +5,7 @@ import math
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from config import *
 
-from numba import njit, prange
+from numba import njit, prange, get_num_threads
 
 ################################ basic angular conversions and maths ####################################
 
@@ -776,7 +776,14 @@ def _qmc_integrate_parallel_2d(func, all_points, rescale, num_randomizations):
     return results
 
 
-def quasi_monte_carlo_integrate(func, bounds, num_samples=nsamp, num_randomizations=16, seed=None):
+def quasi_monte_carlo_integrate(
+    func,
+    bounds,
+    num_samples=nsamp,
+    num_randomizations=None,
+    seed=None,
+    max_batch_mem_mb=1024,
+):
     """
     Quasi-Monte Carlo integration using scrambled Sobol sequences with parallel execution.
 
@@ -791,9 +798,11 @@ def quasi_monte_carlo_integrate(func, bounds, num_samples=nsamp, num_randomizati
         bounds: List of tuples [(a1, b1), (a2, b2), ...] defining integration domain
         num_samples: Number of QMC points to use (per randomization)
         num_randomizations: Number of randomized Sobol sequences for error estimation
-                          Default 16 to fully utilize typical multi-core CPUs
+                          If None, defaults to the current Numba thread count
                           Higher values give better error estimates but cost more
         seed: Random seed for reproducibility (affects scrambling)
+        max_batch_mem_mb: Upper bound for batch point storage in MB. Lowering this
+                          reduces peak memory at the cost of parallelism.
 
     Returns:
         integral: Mean integral value (or list for multi-output)
@@ -809,7 +818,17 @@ def quasi_monte_carlo_integrate(func, bounds, num_samples=nsamp, num_randomizati
     from scipy.stats import qmc
 
     dim = len(bounds)
+    num_samples = int(num_samples)
     bounds_arr = np.array(bounds, dtype=np.float64)
+
+    if num_samples <= 0:
+        raise ValueError("num_samples must be positive.")
+
+    if num_randomizations is None:
+        num_randomizations = int(get_num_threads())
+
+    if num_randomizations <= 0:
+        raise ValueError("num_randomizations must be positive.")
 
     # Determine if multi-output by testing with small sample
     rng = np.random.default_rng(seed)
@@ -836,25 +855,44 @@ def quasi_monte_carlo_integrate(func, bounds, num_samples=nsamp, num_randomizati
         typical_scale = np.median(np.abs(subsample_output))
         rescale = np.array([1.0 if typical_scale == 0 else 1.0 / typical_scale], dtype=np.float64)
 
-    # Pre-generate all randomized Sobol sequences
-    # Shape: (num_randomizations, dim, num_samples)
-    all_points = np.empty((num_randomizations, dim, num_samples), dtype=np.float64)
+    results = np.empty((num_randomizations, n_outputs)) if multi_output else np.empty(num_randomizations)
 
-    for i in range(num_randomizations):
-        # Generate scrambled Sobol sequence (each randomization gets different scramble)
-        sampler = qmc.Sobol(d=dim, scramble=True, seed=None if seed is None else seed + i)
-        qmc_points = sampler.random(n=num_samples)  # Shape: (num_samples, dim)
+    # Batch randomizations to limit peak memory.
+    batch_randomizations = min(int(get_num_threads()), num_randomizations)
+    if max_batch_mem_mb is not None:
+        bytes_per_randomization = (dim + n_outputs) * int(num_samples) * 8
+        max_batch_by_mem = max(1, int((max_batch_mem_mb * 1024 * 1024) // bytes_per_randomization))
+        batch_randomizations = min(batch_randomizations, max_batch_by_mem)
 
-        # Scale points to integration bounds and transpose for JIT function format
-        for d in range(dim):
-            low, high = bounds_arr[d]
-            all_points[i, d, :] = low + qmc_points[:, d] * (high - low)
+    # Pre-generate and process Sobol sequences in batches to cap memory.
+    # Batch shape: (batch_randomizations, dim, num_samples)
+    use_base2 = (num_samples & (num_samples - 1)) == 0
+    base2_m = int(np.log2(num_samples)) if use_base2 else 0
+    for start in range(0, num_randomizations, batch_randomizations):
+        batch = min(batch_randomizations, num_randomizations - start)
+        all_points = np.empty((batch, dim, num_samples), dtype=np.float64)
 
-    # Compute integrals in parallel across all randomizations
-    if multi_output:
-        results = _qmc_integrate_parallel_2d(func, all_points, rescale, num_randomizations)
-    else:
-        results = _qmc_integrate_parallel_1d(func, all_points, rescale[0], num_randomizations)
+        for i in range(batch):
+            # Generate scrambled Sobol sequence (each randomization gets different scramble)
+            seq_seed = None if seed is None else seed + start + i
+            sampler = qmc.Sobol(d=dim, scramble=True, seed=seq_seed)
+            if use_base2:
+                qmc_points = sampler.random_base2(base2_m)
+            else:
+                qmc_points = sampler.random(n=num_samples)  # Shape: (num_samples, dim)
+
+            # Scale points to integration bounds and transpose for JIT function format
+            for d in range(dim):
+                low, high = bounds_arr[d]
+                all_points[i, d, :] = low + qmc_points[:, d] * (high - low)
+
+        # Compute integrals in parallel across the batch
+        if multi_output:
+            batch_results = _qmc_integrate_parallel_2d(func, all_points, rescale, batch)
+            results[start:start + batch, :] = batch_results
+        else:
+            batch_results = _qmc_integrate_parallel_1d(func, all_points, rescale[0], batch)
+            results[start:start + batch] = batch_results
 
     # Compute total volume
     total_volume = 1.0
