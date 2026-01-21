@@ -16,3 +16,13 @@ functions/.ipynb_checkpoints
 tasks.txt
 submit_job.sh
 Figures/*
+
+# Auto-generated SLURM script
+parallel_jobs.sh
+
+# Backup files
+*.backup
+
+# Data directories
+data/
+!data/.gitkeep
