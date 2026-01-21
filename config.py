@@ -147,6 +147,7 @@ sigma_L = 0.1                                                         #noise on 
 
 max_cpus = 512
 nsamp = 2**20           # = 1,048,576 samples (power of 2 for optimal Sobol sequence properties)
+nsamp_string = format_sci(nsamp)
 Csamp = 2**23           # = 8,388,608 samples for triple cosmic integrals (power of 2)
 Nsamp = nsamp           # = 1,048,576 samples for double noise/sparsity integrals
 num_batches = 200       # controls Monte Carlo batching; lower reduces overhead for large runs
