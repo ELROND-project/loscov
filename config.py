@@ -146,11 +146,10 @@ sigma_L = 0.1                                                         #noise on 
 ##################################### numerical stuff ########################################################
 
 max_cpus = 512
-nsamp_string = '1e6'
-nsamp = int(float(nsamp_string))
-Csamp = nsamp*10        #default number of samples in the Monte Carlo integrator for triple cosmic integrals
-Nsamp = nsamp           #default number of samples in the Monte Carlo integrator for double noise/sparsity integrals
-num_batches = 200     #controls Monte Carlo batching; lower reduces overhead for large runs
+nsamp = 2**20           # = 1,048,576 samples (power of 2 for optimal Sobol sequence properties)
+Csamp = 2**23           # = 8,388,608 samples for triple cosmic integrals (power of 2)
+Nsamp = nsamp           # = 1,048,576 samples for double noise/sparsity integrals
+num_batches = 200       # controls Monte Carlo batching; lower reduces overhead for large runs
 desired_error = 1       #percentage desired fractional error in integrals
 warning_level = 500     #level above which we print an integration error
 total_error_threshold = 0.2  #the threshold for the total error on a term to be too high and to print a warning

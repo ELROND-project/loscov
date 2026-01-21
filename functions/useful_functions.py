@@ -700,6 +700,186 @@ def monte_carlo_integrate_jit(func, bounds, num_samples=nsamp, num_batches=num_b
     )
     return integrals.tolist(), errors.tolist()
 
+################################# Quasi-Monte Carlo Integration (Sobol) #######################################
+
+@njit(parallel=True)
+def _qmc_integrate_parallel_1d(func, all_points, rescale, num_randomizations):
+    """
+    Parallelized QMC integrator for single-output function.
+    Processes multiple randomized Sobol sequences in parallel across cores.
+
+    Parameters:
+        func: JIT-compiled integrand function
+        all_points: Pre-generated points, shape (num_randomizations, dim, num_samples)
+        rescale: Scaling factor for numerical stability
+        num_randomizations: Number of independent randomized sequences
+
+    Returns:
+        results: Array of integral values from each randomization, shape (num_randomizations,)
+    """
+    results = np.empty(num_randomizations)
+
+    # Parallelize across randomizations - each core processes one randomization
+    for r in prange(num_randomizations):
+        points = all_points[r]  # Shape: (dim, num_samples)
+        num_samples = points.shape[1]
+
+        # Evaluate function at all points
+        values = func(points)
+
+        # Compute mean with rescaling for stability
+        total = 0.0
+        for i in range(num_samples):
+            total += values[i] * rescale
+
+        mean_f = total / num_samples
+        results[r] = mean_f / rescale
+
+    return results
+
+
+@njit(parallel=True)
+def _qmc_integrate_parallel_2d(func, all_points, rescale, num_randomizations):
+    """
+    Parallelized QMC integrator for multi-output function.
+    Processes multiple randomized Sobol sequences in parallel across cores.
+
+    Parameters:
+        func: JIT-compiled integrand function returning (n_outputs, n_samples)
+        all_points: Pre-generated points, shape (num_randomizations, dim, num_samples)
+        rescale: Scaling factors for each output, shape (n_outputs,)
+        num_randomizations: Number of independent randomized sequences
+
+    Returns:
+        results: Array of integral values, shape (num_randomizations, n_outputs)
+    """
+    n_outputs = rescale.shape[0]
+    results = np.empty((num_randomizations, n_outputs))
+
+    # Parallelize across randomizations - each core processes one randomization
+    for r in prange(num_randomizations):
+        points = all_points[r]  # Shape: (dim, num_samples)
+        num_samples = points.shape[1]
+
+        # Evaluate function at all points
+        values = func(points)
+
+        # Compute mean for each output
+        for o in range(n_outputs):
+            total = 0.0
+            rescale_o = rescale[o]
+            for i in range(num_samples):
+                total += values[o, i] * rescale_o
+            mean_f = total / num_samples
+            results[r, o] = mean_f / rescale_o
+
+    return results
+
+
+def quasi_monte_carlo_integrate(func, bounds, num_samples=nsamp, num_randomizations=16, seed=None):
+    """
+    Quasi-Monte Carlo integration using scrambled Sobol sequences with parallel execution.
+
+    This uses pre-generated Sobol points for better convergence than pseudo-random MC.
+    For smooth integrands, QMC error scales as ~1/N compared to ~1/sqrt(N) for MC.
+    All randomizations are processed in parallel across available CPU cores.
+
+    Parameters:
+        func: JIT-compiled integrand function
+              - For 1D output: returns array of shape (n_samples,)
+              - For multi-output: returns array of shape (n_outputs, n_samples)
+        bounds: List of tuples [(a1, b1), (a2, b2), ...] defining integration domain
+        num_samples: Number of QMC points to use (per randomization)
+        num_randomizations: Number of randomized Sobol sequences for error estimation
+                          Default 16 to fully utilize typical multi-core CPUs
+                          Higher values give better error estimates but cost more
+        seed: Random seed for reproducibility (affects scrambling)
+
+    Returns:
+        integral: Mean integral value (or list for multi-output)
+        error: Standard error estimated from variance across randomizations
+
+    Notes:
+        - QMC works best for smooth integrands in dimensions d < 15
+        - Error estimation uses variance across multiple scrambled sequences
+        - Total function evaluations = num_samples * num_randomizations
+        - Parallelization: randomizations processed across CPU cores using Numba prange
+        - For 16-core CPU, num_randomizations=16 gives optimal core utilization
+    """
+    from scipy.stats import qmc
+
+    dim = len(bounds)
+    bounds_arr = np.array(bounds, dtype=np.float64)
+
+    # Determine if multi-output by testing with small sample
+    rng = np.random.default_rng(seed)
+    test_points = np.array([rng.uniform(low=a, high=b, size=10) for a, b in bounds])
+    test_output = func(test_points)
+
+    multi_output = test_output.ndim == 2
+    if multi_output:
+        n_outputs = test_output.shape[0]
+    else:
+        n_outputs = 1
+
+    # Compute rescale factors for numerical stability
+    n_subsample = min(100, num_samples)
+    subsample_points = np.array([rng.uniform(low=a, high=b, size=n_subsample) for a, b in bounds])
+    subsample_output = func(subsample_points)
+
+    if multi_output:
+        rescale = np.empty(n_outputs, dtype=np.float64)
+        for j in range(n_outputs):
+            typical_scale = np.median(np.abs(subsample_output[j]))
+            rescale[j] = 1.0 if typical_scale == 0 else 1.0 / typical_scale
+    else:
+        typical_scale = np.median(np.abs(subsample_output))
+        rescale = np.array([1.0 if typical_scale == 0 else 1.0 / typical_scale], dtype=np.float64)
+
+    # Pre-generate all randomized Sobol sequences
+    # Shape: (num_randomizations, dim, num_samples)
+    all_points = np.empty((num_randomizations, dim, num_samples), dtype=np.float64)
+
+    for i in range(num_randomizations):
+        # Generate scrambled Sobol sequence (each randomization gets different scramble)
+        sampler = qmc.Sobol(d=dim, scramble=True, seed=None if seed is None else seed + i)
+        qmc_points = sampler.random(n=num_samples)  # Shape: (num_samples, dim)
+
+        # Scale points to integration bounds and transpose for JIT function format
+        for d in range(dim):
+            low, high = bounds_arr[d]
+            all_points[i, d, :] = low + qmc_points[:, d] * (high - low)
+
+    # Compute integrals in parallel across all randomizations
+    if multi_output:
+        results = _qmc_integrate_parallel_2d(func, all_points, rescale, num_randomizations)
+    else:
+        results = _qmc_integrate_parallel_1d(func, all_points, rescale[0], num_randomizations)
+
+    # Compute total volume
+    total_volume = 1.0
+    for low, high in bounds:
+        total_volume *= (high - low)
+
+    # Estimate integral and error from randomizations
+    if multi_output:
+        # results shape: (num_randomizations, n_outputs)
+        mean_integrals = np.mean(results, axis=0) * total_volume
+        if num_randomizations > 1:
+            std_integrals = np.std(results, axis=0, ddof=1) * total_volume / np.sqrt(num_randomizations)
+        else:
+            std_integrals = np.zeros(n_outputs)
+        return mean_integrals.tolist(), std_integrals.tolist()
+    else:
+        # results shape: (num_randomizations,)
+        mean_integral = np.mean(results) * total_volume
+        if num_randomizations > 1:
+            std_integral = np.std(results, ddof=1) * total_volume / np.sqrt(num_randomizations)
+        else:
+            std_integral = 0.0
+        return float(mean_integral), float(std_integral)
+
+
 def test_err(error, signal, name):
 
     if signal != 0:

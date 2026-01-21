@@ -186,7 +186,7 @@ def generate_ccov_LLLE(D):
             ranges = [(0, 2*np.pi), (0, 2*np.pi),
                       (rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, r2_max)]
 
-            integrals, errs = monte_carlo_integrate_jit(integrand_all, ranges, Csamp)
+            integrals, errs = quasi_monte_carlo_integrate(integrand_all, ranges, Csamp)
 
             # normalisation of differential elements
             norm = 2/(Omegatot * Omegas1[alpha] * Omegas2[beta])
@@ -298,7 +298,7 @@ def generate_ncov_LLLE(D):
             """Compute all 4 component integrals with shared samples."""
             ranges = [(rs1[alpha], rs1[alpha+1]), (rs2[beta], rs2[beta+1]), (0, 2*np.pi)]
 
-            integrals, errs = monte_carlo_integrate_jit(integrand_all, ranges, Nsamp)
+            integrals, errs = quasi_monte_carlo_integrate(integrand_all, ranges, Nsamp)
 
             # normalisation of differential elements
             norm = 1/(Omegas1[alpha] * Omegas2[beta])
