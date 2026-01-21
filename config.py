@@ -146,9 +146,18 @@ sigma_L = 0.1                                                         #noise on 
 ##################################### numerical stuff ########################################################
 
 max_cpus = 512
-nsamp = 2**20           # = 1,048,576 samples (power of 2 for optimal Sobol sequence properties)
-Csamp = 2**23           # = 8,388,608 samples for triple cosmic integrals (power of 2)
-Nsamp = nsamp           # = 1,048,576 samples for double noise/sparsity integrals
+def _env_int(name, default):
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return int(float(value))
+
+nsamp = _env_int("LOSCOV_NSAMP", 2**13)           # power of 2 for optimal Sobol sequence properties
+Csamp = _env_int("LOSCOV_CSAMP", 2**13)           # samples for triple cosmic integrals
+Nsamp = _env_int("LOSCOV_NSAMP_NOISE", nsamp)     # samples for double noise/sparsity integrals
 num_batches = 200       # controls Monte Carlo batching; lower reduces overhead for large runs
 desired_error = 1       #percentage desired fractional error in integrals
 warning_level = 500     #level above which we print an integration error
@@ -225,6 +234,7 @@ def format_sci(n):
     return f'{n:.0e}'.replace('+00', '').replace('+0', '').replace('+', '').replace('-0', '-')
 
 nsamp_string = format_sci(nsamp)
+data_root = os.getenv("LOSCOV_DATA_ROOT", "data")
 
 if supply_binscheme == True:
 
@@ -234,6 +244,12 @@ if supply_binscheme == False:
 
     suffix = f'Nlens={format_sci(Nlens)}_sigL={sigma_L}_Nbin_z={Nbin_z}_SNR_goal={SNR_goal}_Nbin_max={Nbin_max}_nsamp={nsamp_string}{notes}'
     
+run_stamp = os.getenv("LOSCOV_RUN_STAMP", "")
+if run_stamp:
+    suffix = f"{suffix}_{run_stamp}"
+
+data_dir = os.path.join(data_root, suffix)
+
 
 if not os.path.exists(f'correlations_NE={Nbinz_E}_NP={Nbinz_P}{correlation_notes}'):
     compute_correlations = True      

@@ -12,7 +12,7 @@ def optimise_bins(correlation_function, correlation_type, antiderivative, b, SNR
     
     get_item('L0', 'E0') #we'll need these for the prefactors in the signal to noise ratios
     
-    redshift_distributions = load_file(f"data/{suffix}/redshift_distributions")
+    redshift_distributions = load_file(f"{data_dir}/redshift_distributions")
 
     if correlation_type == 'LE':
         G_B = redshift_distributions['E'].get_ngal(b)

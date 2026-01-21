@@ -798,7 +798,10 @@ def quasi_monte_carlo_integrate(
         bounds: List of tuples [(a1, b1), (a2, b2), ...] defining integration domain
         num_samples: Number of QMC points to use (per randomization)
         num_randomizations: Number of randomized Sobol sequences for error estimation
-                          If None, defaults to the current Numba thread count
+                          If None, defaults to:
+                            1. LOSCOV_NUM_RANDOMIZATIONS env var if set
+                            2. max(4, current Numba thread count) otherwise
+                          Minimum 4 ensures valid error estimates even in parallel job mode
                           Higher values give better error estimates but cost more
         seed: Random seed for reproducibility (affects scrambling)
         max_batch_mem_mb: Upper bound for batch point storage in MB. Lowering this
@@ -825,7 +828,17 @@ def quasi_monte_carlo_integrate(
         raise ValueError("num_samples must be positive.")
 
     if num_randomizations is None:
-        num_randomizations = int(get_num_threads())
+        # Check for environment variable override first
+        env_nrand = os.getenv("LOSCOV_NUM_RANDOMIZATIONS")
+        if env_nrand:
+            try:
+                num_randomizations = int(env_nrand)
+            except ValueError:
+                num_randomizations = max(4, int(get_num_threads()))
+        else:
+            # Default to available threads, but require minimum 4 for reasonable error estimation
+            # This ensures error computation works even when NUMBA_NUM_THREADS=1 (parallel job mode)
+            num_randomizations = max(4, int(get_num_threads()))
 
     if num_randomizations <= 0:
         raise ValueError("num_randomizations must be positive.")

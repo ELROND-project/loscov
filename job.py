@@ -9,8 +9,8 @@ from config import *                                #all constants, defined in t
 from functions.useful_functions import *            #useful functions, defined in the functions/useful_functions.py file
 
 load_correlations(filename=f'correlations_NE={Nbinz_E}_NP={Nbinz_P}{correlation_notes}')
-angular_distributions = load_file(f"data/{suffix}/angular_distributions")
-redshift_distributions = load_file(f"data/{suffix}/redshift_distributions")
+angular_distributions = load_file(f"{data_dir}/angular_distributions")
+redshift_distributions = load_file(f"{data_dir}/redshift_distributions")
 
 add_dict(angular_distributions)
 add_dict(redshift_distributions)
@@ -74,7 +74,7 @@ result = compute_covariance_piece((b1, b2, cov_matrix, cov_type))
 
 def save_data(b1, b2, cov_matrix, cov_type, data, folder):
     
-    matrices_folder = f'data/{suffix}/{folder}'
+    matrices_folder = f'{data_dir}/{folder}'
 
     #saving the data
     if data is not None:

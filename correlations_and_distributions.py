@@ -17,7 +17,7 @@ redshift_distribution_P = Redshift_Distributions(NGal, binscheme = binscheme_P, 
 redshift_distributions = {"E" : redshift_distribution_E,
                           "P" : redshift_distribution_P}
 
-save_pickle(redshift_distributions, f'data/{suffix}/redshift_distributions', f"Saved redshift distributions")
+save_pickle(redshift_distributions, f'{data_dir}/redshift_distributions', f"Saved redshift distributions")
 add_dict(redshift_distributions)
 
 print(f"Finished 2. Redshift Distributions.")
@@ -471,7 +471,7 @@ if compute_correlations:
     save_pickle(global_dict, f"correlations_NE={Nbinz_E}_NP={Nbinz_P}{correlation_notes}", f"Saved all correlations")
 
 load_correlations(filename=f"correlations_NE={Nbinz_E}_NP={Nbinz_P}{correlation_notes}")
-correlations_folder = f'data/{suffix}/binned_correlations'
+correlations_folder = f'{data_dir}/binned_correlations'
             
 print('Finished 3. Correlation Functions')
 
@@ -562,7 +562,7 @@ angular_distributions = {"LL_plus" : angular_distribution_LL_plus,
                          "LE_minus" : angular_distribution_LE_minus,
                          "LP" : angular_distribution_LP}
 
-save_pickle(angular_distributions, f'data/{suffix}/angular_distributions', f"Saved angular distributions")
+save_pickle(angular_distributions, f'{data_dir}/angular_distributions', f"Saved angular distributions")
 add_dict(angular_distributions)
 
 print('Finished 4. Angular Distributions')
