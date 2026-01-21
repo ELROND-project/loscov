@@ -3,6 +3,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from config import *
+from scipy.integrate import quad
 
 from functions.useful_functions import *
 
@@ -194,11 +195,10 @@ class Angular_Distributions:
         Omegas = self.Omegas
 
         def integrand(r):
-            f = 2 * np.pi * r * correlation(r)
-            return f
-        
+            return 2 * np.pi * r * correlation(r)
+
         for a in range(Nbin):
-            integral, err = monte_carlo_integrate(integrand, [(rs[a], rs[a+1])])
+            integral, err = quad(integrand, rs[a], rs[a+1])
             integral /= Omegas[a]
             xi_bins.append(integral)
 
