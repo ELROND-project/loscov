@@ -17,7 +17,6 @@ def radtoarcmin(angle_rad):
     
     return angle_arcmin
 
-
 def arcmintorad(angle_arcmin):
     """
     This function converts an an angle expressed in arcmins
@@ -35,30 +34,6 @@ def delta_func(a,b):
         x = 0
 
     return x
-
-def cos_law_side(b,c,A):
-
-    number = b**2 + c**2 - 2*b*c*np.cos(A)
-
-    if np.any(number < 0):
-        print("warning! number = ", number)
-    
-    return np.sqrt(b**2 + c**2 - 2*b*c*np.cos(A))
-
-def cos_law_angle(b, c, a):
-    b = np.asarray(b)
-    c = np.asarray(c)
-    a = np.asarray(a)
-    
-    denominator = 2 * b * c
-    
-    if np.any(denominator == 0):
-        raise ValueError("Invalid input: some values of b or c are zero, leading to division by zero.")
-    
-    cos_angle = (b**2 + c**2 - a**2) / denominator
-    cos_angle = np.clip(cos_angle, -1.0, 1.0)
-    
-    return np.arccos(cos_angle)
 
 def sin2(x):
     return np.sin(2*x)

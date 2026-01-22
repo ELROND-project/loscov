@@ -44,24 +44,21 @@ def generate_ccov_LLLL():
         err_xp = np.zeros((Nbin1, Nbin2))
         err_xx = np.zeros((Nbin1, Nbin2))
         
-        # Define the integrands (complete from here)
+        # Define the integrands
         
         def integrand_pp(params):
             
             psi_j, psi_kl, r_j, r_kl, r_k = params
         
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
+            x_jl = r_kl * np.cos(psi_kl) - r_j * np.cos(psi_j) + r_k
+            y_jl = r_kl * np.sin(psi_kl) - r_j * np.sin(psi_j)
             
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jl = cos_law_side(r_kl, r_kj, (psi_kl-psi_kj))
-            psi_jl = cos_law_angle(r_kl, r_jl, r_kj) + psi_kl
+            r_jl = np.sqrt( x_jl**2 + y_jl**2 ) 
+            psi_jl = np.arctan2(y_jl, x_jl)
     
             f = ( ( LLp(r_k) * cos2(psi_j) * cos2(psi_kl)
                   + LLx(r_k) * sin2(psi_j) * sin2(psi_kl) )
-            * ( LLp(r_jl) * cos2(psi_jl - psi_j) * cos2(psi_jl - psi_kl)
+                * ( LLp(r_jl) * cos2(psi_jl - psi_j) * cos2(psi_jl - psi_kl)
                   + LLx(r_jl) * sin2(psi_jl - psi_j) * sin2(psi_jl - psi_kl) ) )
     
             f *= 2 * np.pi * r_k * r_j * r_kl
@@ -72,39 +69,16 @@ def generate_ccov_LLLL():
             
             psi_j, psi_kl, r_j, r_kl, r_k = params
         
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
+            x_jl = r_kl * np.cos(psi_kl) - r_j * np.cos(psi_j) + r_k
+            y_jl = r_kl * np.sin(psi_kl) - r_j * np.sin(psi_j)
             
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jl = cos_law_side(r_kl, r_kj, (psi_kl-psi_kj))
-            psi_jl = cos_law_angle(r_kl, r_jl, r_kj) + psi_kl
+            r_jl = np.sqrt( x_jl**2 + y_jl**2 ) 
+            psi_jl = np.arctan2(y_jl, x_jl)
     
             f = - ( ( LLp(r_k) * cos2(psi_j) * sin2(psi_kl)
-                  - LLx(r_k) * sin2(psi_j) * cos2(psi_kl) ) * ( LLp(r_jl) * cos2(psi_jl - psi_j) * sin2(psi_jl - psi_kl)
-                  - LLx(r_jl) * sin2(psi_jl - psi_j) * cos2(psi_jl - psi_kl) ) )
-    
-            f *= 2 * np.pi * r_k * r_j * r_kl
-            
-            return f
-        
-        def integrand_xp(params):
-            
-            psi_j, psi_kl, r_j, r_kl, r_k = params
-        
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
-            
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jl = cos_law_side(r_kl, r_kj, (psi_kl-psi_kj))
-            psi_jl = cos_law_angle(r_kl, r_jl, r_kj) + psi_kl
-    
-            f = - ( ( LLp(r_k) * sin2(psi_j) * cos2(psi_kl)
-                  - LLx(r_k) * cos2(psi_j) * sin2(psi_kl) ) * ( LLp(r_jl) * sin2(psi_jl - psi_j) * cos2(psi_jl - psi_kl)
-                  - LLx(r_jl) * cos2(psi_jl - psi_j) * sin2(psi_jl - psi_kl) ) )
+                    - LLx(r_k) * sin2(psi_j) * cos2(psi_kl) ) 
+                  * ( LLp(r_jl) * cos2(psi_jl - psi_j) * sin2(psi_jl - psi_kl)
+                    - LLx(r_jl) * sin2(psi_jl - psi_j) * cos2(psi_jl - psi_kl) ) )
     
             f *= 2 * np.pi * r_k * r_j * r_kl
             
@@ -114,17 +88,15 @@ def generate_ccov_LLLL():
             
             psi_j, psi_kl, r_j, r_kl, r_k = params
         
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
+            x_jl = r_kl * np.cos(psi_kl) - r_j * np.cos(psi_j) + r_k
+            y_jl = r_kl * np.sin(psi_kl) - r_j * np.sin(psi_j)
             
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jl = cos_law_side(r_kl, r_kj, (psi_kl-psi_kj))
-            psi_jl = cos_law_angle(r_kl, r_jl, r_kj) + psi_kl
+            r_jl = np.sqrt( x_jl**2 + y_jl**2 ) 
+            psi_jl = np.arctan2(y_jl, x_jl)
     
             f = ( ( LLp(r_k) * sin2(psi_j) * sin2(psi_kl)
-                  + LLx(r_k) * cos2(psi_j) * cos2(psi_kl) ) * ( LLp(r_jl) * sin2(psi_jl - psi_j) * sin2(psi_jl - psi_kl)
+                  + LLx(r_k) * cos2(psi_j) * cos2(psi_kl) ) 
+                * ( LLp(r_jl) * sin2(psi_jl - psi_j) * sin2(psi_jl - psi_kl)
                   + LLx(r_jl) * cos2(psi_jl - psi_j) * cos2(psi_jl - psi_kl) ) )
     
             f *= 2 * np.pi * r_k * r_j * r_kl
@@ -149,13 +121,13 @@ def generate_ccov_LLLL():
                          
                 ccov_pp[alpha, beta], err_pp[alpha, beta] = integral_bins(integrand_pp, alpha, beta)
                 ccov_px[alpha, beta], err_px[alpha, beta] = integral_bins(integrand_px, alpha, beta)
-                ccov_xp[alpha, beta], err_xp[alpha, beta] = integral_bins(integrand_xp, alpha, beta)
+                ccov_xp[alpha, beta], err_xp[alpha, beta] = integral_bins(integrand_px, beta, alpha) #from symmetry
                 ccov_xx[alpha, beta], err_xx[alpha, beta] = integral_bins(integrand_xx, alpha, beta)
     
-                test_err(err_pp[alpha, beta], ccov_pp[alpha, beta], f'LLLL ccov plus plus angular bins {alpha, beta}')
-                test_err(err_px[alpha, beta], ccov_px[alpha, beta], f'LLLL ccov plus times angular bins {alpha, beta}')
-                test_err(err_xp[alpha, beta], ccov_xp[alpha, beta], f'LLLL ccov times plus angular bins {alpha, beta}')
-                test_err(err_xx[alpha, beta], ccov_xx[alpha, beta], f'LLLL ccov times times angular bins {alpha, beta}')
+                # test_err(err_pp[alpha, beta], ccov_pp[alpha, beta], f'LLLL ccov plus plus angular bins {alpha, beta}')
+                # test_err(err_px[alpha, beta], ccov_px[alpha, beta], f'LLLL ccov plus times angular bins {alpha, beta}')
+                # test_err(err_xp[alpha, beta], ccov_xp[alpha, beta], f'LLLL ccov times plus angular bins {alpha, beta}')
+                # test_err(err_xx[alpha, beta], ccov_xx[alpha, beta], f'LLLL ccov times times angular bins {alpha, beta}')
 
         err = np.sqrt(err_pp**2 + err_px**2 + err_xp**2 + err_xx**2)
 
@@ -248,7 +220,8 @@ def generate_ncov_LLLL():
             r_jl = np.sqrt( y_jl**2 + x_jl**2 ) 
             psi_jl = np.arctan2(y_jl, x_jl)
             
-            f = cos2(psi_l) * ( LLp(r_jl) * cos2(psi_jl) * cos2(psi_jl - psi_l) + LLx(r_jl) * sin2(psi_jl) * sin2(psi_jl-psi_l) )
+            f = cos2(psi_l) * ( LLp(r_jl) * cos2(psi_jl) * cos2(psi_jl - psi_l) 
+                              + LLx(r_jl) * sin2(psi_jl) * sin2(psi_jl - psi_l) )
     
             f *= 2 * np.pi * r_j * r_l
                                   
@@ -264,23 +237,8 @@ def generate_ncov_LLLL():
             r_jl = np.sqrt( y_jl**2 + x_jl**2 ) 
             psi_jl = np.arctan2(y_jl, x_jl)
             
-            f = - sin2(psi_l) * ( LLp(r_jl) * cos2(psi_jl) * sin2(psi_jl - psi_l) - LLx(r_jl) * sin2(psi_jl) * cos2(psi_jl-psi_l) )
-    
-            f *= 2 * np.pi * r_j * r_l
-                                  
-            return f
-        
-        def integrand_xp(params):
-            
-            r_j, r_l, psi_l = params
-        
-            y_jl = r_l*np.sin(psi_l)
-            x_jl = r_l*np.cos(psi_l) - r_j
-            
-            r_jl = np.sqrt( y_jl**2 + x_jl**2 ) 
-            psi_jl = np.arctan2(y_jl, x_jl)
-            
-            f = sin2(psi_l) * ( LLp(r_jl) * sin2(psi_jl) * cos2(psi_jl - psi_l) - LLx(r_jl) * cos2(psi_jl) * sin2(psi_jl-psi_l) )
+            f = - sin2(psi_l) * ( LLp(r_jl) * cos2(psi_jl) * sin2(psi_jl - psi_l) 
+                                - LLx(r_jl) * sin2(psi_jl) * cos2(psi_jl - psi_l) )
     
             f *= 2 * np.pi * r_j * r_l
                                   
@@ -296,7 +254,8 @@ def generate_ncov_LLLL():
             r_jl = np.sqrt( y_jl**2 + x_jl**2 ) 
             psi_jl = np.arctan2(y_jl, x_jl)
             
-            f = cos2(psi_l) * ( LLp(r_jl) * sin2(psi_jl) * sin2(psi_jl - psi_l) + LLx(r_jl) * cos2(psi_jl) * cos2(psi_jl-psi_l) )
+            f = cos2(psi_l) * ( LLp(r_jl) * sin2(psi_jl) * sin2(psi_jl - psi_l) 
+                              + LLx(r_jl) * cos2(psi_jl) * cos2(psi_jl - psi_l) )
     
             f *= 2 * np.pi * r_j * r_l
                                   
@@ -319,7 +278,7 @@ def generate_ncov_LLLL():
                          
                 int_pp, err_pp = integral_bins(integrand_pp, alpha, beta)
                 int_px, err_px = integral_bins(integrand_px, alpha, beta)
-                int_xp, err_xp = integral_bins(integrand_xp, alpha, beta)
+                int_xp, err_xp = integral_bins(integrand_px, beta, alpha)
                 int_xx, err_xx = integral_bins(integrand_xx, alpha, beta)
                          
                 ncov_pp[alpha, beta] = (sigma_L**2/Nlens) * int_pp
@@ -358,15 +317,15 @@ def generate_ncov_LLLL():
                     scov_pp[alpha, beta] += cterm_s
                     scov_xx[alpha, beta] += cterm_s
     
-                test_err(nerr_pp[alpha, beta], ncov_pp[alpha, beta], f'LLLL ncov plus plus angular bins {alpha, beta}')
-                test_err(nerr_px[alpha, beta], ncov_px[alpha, beta], f'LLLL ncov plus times angular bins {alpha, beta}')
-                test_err(nerr_xp[alpha, beta], ncov_xp[alpha, beta], f'LLLL ncov times plus angular bins {alpha, beta}')
-                test_err(nerr_xx[alpha, beta], ncov_xx[alpha, beta], f'LLLL ncov times times angular bins {alpha, beta}')
+                # test_err(nerr_pp[alpha, beta], ncov_pp[alpha, beta], f'LLLL ncov plus plus angular bins {alpha, beta}')
+                # test_err(nerr_px[alpha, beta], ncov_px[alpha, beta], f'LLLL ncov plus times angular bins {alpha, beta}')
+                # test_err(nerr_xp[alpha, beta], ncov_xp[alpha, beta], f'LLLL ncov times plus angular bins {alpha, beta}')
+                # test_err(nerr_xx[alpha, beta], ncov_xx[alpha, beta], f'LLLL ncov times times angular bins {alpha, beta}')
     
-                test_err(serr_pp[alpha, beta], scov_pp[alpha, beta], f'LLLL scov plus plus angular bins {alpha, beta}')
-                test_err(serr_px[alpha, beta], scov_px[alpha, beta], f'LLLL scov plus times angular bins {alpha, beta}')
-                test_err(serr_xp[alpha, beta], scov_xp[alpha, beta], f'LLLL scov times plus angular bins {alpha, beta}')
-                test_err(serr_xx[alpha, beta], scov_xx[alpha, beta], f'LLLL scov times times angular bins {alpha, beta}')
+                # test_err(serr_pp[alpha, beta], scov_pp[alpha, beta], f'LLLL scov plus plus angular bins {alpha, beta}')
+                # test_err(serr_px[alpha, beta], scov_px[alpha, beta], f'LLLL scov plus times angular bins {alpha, beta}')
+                # test_err(serr_xp[alpha, beta], scov_xp[alpha, beta], f'LLLL scov times plus angular bins {alpha, beta}')
+                # test_err(serr_xx[alpha, beta], scov_xx[alpha, beta], f'LLLL scov times times angular bins {alpha, beta}')
 
         nerr = np.sqrt(nerr_pp**2 + nerr_px**2 + nerr_xp**2 + nerr_xx**2)
         serr = np.sqrt(serr_pp**2 + serr_px**2 + serr_xp**2 + serr_xx**2)

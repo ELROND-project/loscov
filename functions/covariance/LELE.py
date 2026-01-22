@@ -53,23 +53,20 @@ def generate_ccov_LELE(B, D):
             
             psi_b, psi_kd, r_b, r_kd, r_k = params
         
-            y_kb = r_b * np.sin(psi_b)
-            x_kb = r_b * np.cos(psi_b) - r_k
+            x_bd = r_kd * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
+            y_bd = r_kd * np.sin(psi_kd) - r_b * np.sin(psi_b)
             
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
+            r_bd = np.sqrt( x_bd**2 + y_bd**2 ) 
+            psi_bd = np.arctan2(y_bd, x_bd)
     
             f = ( ( LLp(r_k) * cos2(psi_b) * cos2(psi_kd)
                   + LLx(r_k) * sin2(psi_b) * sin2(psi_kd) )
-            * ( EEp[B][D](r_bd) * cos2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
-               + EEx[B][D](r_bd) * sin2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
-            + ( LEp[D](r_k) * cos2(psi_b) * cos2(psi_kd)
-               + LEx[D](r_k) * sin2(psi_b) * sin2(psi_kd) )
-            * ( LEp[B](r_bd) * cos2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
-               + LEx[B](r_bd) * sin2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
+                * ( EEp[B][D](r_bd) * cos2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
+                  + EEx[B][D](r_bd) * sin2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
+                + ( LEp[D](r_k) * cos2(psi_b) * cos2(psi_kd)
+                  + LEx[D](r_k) * sin2(psi_b) * sin2(psi_kd) )
+                * ( LEp[B](r_bd) * cos2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
+                  + LEx[B](r_bd) * sin2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
                 )
             
             f *= 2 * np.pi * r_k * r_b * r_kd
@@ -80,50 +77,44 @@ def generate_ccov_LELE(B, D):
             
             psi_b, psi_kd, r_b, r_kd, r_k = params
         
-            y_kb = r_b * np.sin(psi_b)
-            x_kb = r_b * np.cos(psi_b) - r_k
+            x_bd = r_kd * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
+            y_bd = r_kd * np.sin(psi_kd) - r_b * np.sin(psi_b)
             
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
+            r_bd = np.sqrt( x_bd**2 + y_bd**2 ) 
+            psi_bd = np.arctan2(y_bd, x_bd)
     
             f = - ( ( LLp(r_k) * cos2(psi_b) * sin2(psi_kd)
-                  - LLx(r_k) * sin2(psi_b) * cos2(psi_kd) )
-            * ( EEp[B][D](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
-               - EEx[B][D](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
-            + ( LEp[D](r_k) * cos2(psi_b) * sin2(psi_kd)
-               - LEx[D](r_k) * sin2(psi_b) * cos2(psi_kd) )
-                * ( LEp[B](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
-                  - LEx[B](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
+                    - LLx(r_k) * sin2(psi_b) * cos2(psi_kd) )
+                  * ( EEp[B][D](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
+                    - EEx[B][D](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
+                  + ( LEp[D](r_k) * cos2(psi_b) * sin2(psi_kd)
+                    - LEx[D](r_k) * sin2(psi_b) * cos2(psi_kd) )
+                  * ( LEp[B](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
+                    - LEx[B](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
                 )
             
             f *= 2 * np.pi * r_k * r_b * r_kd
             
             return f
         
-        def integrand_xp(params):
+        def integrand_px_T(params): 
             
             psi_b, psi_kd, r_b, r_kd, r_k = params
         
-            y_kb = r_b * np.sin(psi_b)
-            x_kb = r_b * np.cos(psi_b) - r_k
+            x_bd = r_kd * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
+            y_bd = r_kd * np.sin(psi_kd) - r_b * np.sin(psi_b)
             
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
+            r_bd = np.sqrt( x_bd**2 + y_bd**2 ) 
+            psi_bd = np.arctan2(y_bd, x_bd)
     
-            f = - ( ( LLp(r_k) * sin2(psi_b) * cos2(psi_kd)
-                  - LLx(r_k) * cos2(psi_b) * sin2(psi_kd) )
-            * ( EEp[B][D](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
-               - EEx[B][D](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
-            + ( LEp[D](r_k) * sin2(psi_b) * cos2(psi_kd)
-               - LEx[D](r_k) * cos2(psi_b) * sin2(psi_kd) )
-                * ( LEp[B](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd)
-                  - LEx[B](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd) )
+            f = - ( ( LLp(r_k) * cos2(psi_b) * sin2(psi_kd)
+                    - LLx(r_k) * sin2(psi_b) * cos2(psi_kd) )
+                  * ( EEp[D][B](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
+                    - EEx[D][B](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
+                  + ( LEp[B](r_k) * cos2(psi_b) * sin2(psi_kd)
+                    - LEx[B](r_k) * sin2(psi_b) * cos2(psi_kd) )
+                  * ( LEp[D](r_bd) * cos2(psi_bd - psi_b) * sin2(psi_bd - psi_kd)
+                    - LEx[D](r_bd) * sin2(psi_bd - psi_b) * cos2(psi_bd - psi_kd) )
                 )
             
             f *= 2 * np.pi * r_k * r_b * r_kd
@@ -134,14 +125,11 @@ def generate_ccov_LELE(B, D):
             
             psi_b, psi_kd, r_b, r_kd, r_k = params
         
-            y_kb = r_b * np.sin(psi_b)
-            x_kb = r_b * np.cos(psi_b) - r_k
+            x_bd = r_kd * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
+            y_bd = r_kd * np.sin(psi_kd) - r_b * np.sin(psi_b)
             
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
+            r_bd = np.sqrt( x_bd**2 + y_bd**2 ) 
+            psi_bd = np.arctan2(y_bd, x_bd)
     
             f = ( ( LLp(r_k) * sin2(psi_b) * sin2(psi_kd)
                   + LLx(r_k) * cos2(psi_b) * cos2(psi_kd) )
@@ -174,7 +162,7 @@ def generate_ccov_LELE(B, D):
                          
                 ccov_pp[alpha, beta], err_pp[alpha, beta] = integral_bins(integrand_pp, alpha, beta)
                 ccov_px[alpha, beta], err_px[alpha, beta] = integral_bins(integrand_px, alpha, beta)
-                ccov_xp[alpha, beta], err_xp[alpha, beta] = integral_bins(integrand_xp, alpha, beta)
+                ccov_xp[alpha, beta], err_xp[alpha, beta] = integral_bins(integrand_px_T, beta, alpha)
                 ccov_xx[alpha, beta], err_xx[alpha, beta] = integral_bins(integrand_xx, alpha, beta)
         
                 test_err(err_pp[alpha, beta], ccov_pp[alpha, beta], f'LELE ccov plus plus redshift bins{B, D} angular bins {alpha, beta}')
@@ -226,7 +214,7 @@ def generate_ncov_LELE(B, D):
     Computes the contribution of noise and sparsity variance in the covariance matrix
     of the LOS shear - galaxy shape correlation functions.
     
-    B             : the galaxy redshift bin D (0 to Nbinz_E)
+    B             : the galaxy redshift bin B (0 to Nbinz_E)
     D             : the galaxy redshift bin D (0 to Nbinz_E)
     """
 
@@ -346,7 +334,7 @@ def generate_ncov_LELE(B, D):
                                   
             return f
         
-        def integrand_xp_L(params):
+        def integrand_px_L_T(params):
             
             r_b, r_d, psi_d = params
         
@@ -356,28 +344,9 @@ def generate_ncov_LELE(B, D):
             r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
             psi_bd = np.arctan2(y_bd, x_bd)
             
-            f = ( sin2(psi_d) 
-                * ( EEp[B][D](r_bd) * sin2(psi_bd) * cos2(psi_bd - psi_d)  
-                  - EEx[B][D](r_bd) * cos2(psi_bd) * sin2(psi_bd - psi_d)  
-                ) )
-    
-            f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
-                                  
-            return f
-        
-        def integrand_xp_E(params):
-            
-            r_b, r_d, psi_d = params
-        
-            y_bd = r_d*np.sin(psi_d)
-            x_bd = r_d*np.cos(psi_d) - r_b
-            
-            r_bd = np.sqrt( y_bd**2 + x_bd**2 ) 
-            psi_bd = np.arctan2(y_bd, x_bd)
-            
-            f = ( sin2(psi_d) 
-                * ( LLp(r_bd) * sin2(psi_bd) * cos2(psi_bd - psi_d)   
-                  - LLx(r_bd) * cos2(psi_bd) * sin2(psi_bd - psi_d) 
+            f = - ( sin2(psi_d) 
+                * ( EEp[D][B](r_bd) * cos2(psi_bd) * sin2(psi_bd - psi_d)  
+                  - EEx[D][B](r_bd) * sin2(psi_bd) * cos2(psi_bd - psi_d)  
                 ) )
     
             f *= np.pi * r_b * r_d #the usual 2 disappears because of the factor 1/2 out the front
@@ -437,13 +406,13 @@ def generate_ncov_LELE(B, D):
         
         integrand_pp = [integrand_pp_L]
         integrand_px = [integrand_px_L]
-        integrand_xp = [integrand_xp_L]
+        integrand_px_T = [integrand_px_L_T]
         integrand_xx = [integrand_xx_L]
     
         if B == D:
             integrand_pp.append(integrand_pp_E)
             integrand_px.append(integrand_px_E)
-            integrand_xp.append(integrand_xp_E)
+            integrand_px_T.append(integrand_px_E)
             integrand_xx.append(integrand_xx_E)
     
         for alpha in range(Nbin1):
@@ -452,7 +421,7 @@ def generate_ncov_LELE(B, D):
                          
                 int_pp, err_pp = integral_bins(integrand_pp, alpha, beta)
                 int_px, err_px = integral_bins(integrand_px, alpha, beta)
-                int_xp, err_xp = integral_bins(integrand_xp, alpha, beta)
+                int_xp, err_xp = integral_bins(integrand_px_T, beta, alpha)
                 int_xx, err_xx = integral_bins(integrand_xx, alpha, beta)
     
                 ncov_pp[alpha, beta] = (sigma_L**2/Nlens) * int_pp[0]
@@ -608,7 +577,7 @@ def generate_ncov_LELE(B, D):
     
     ncovmm = ncov_pp - ncov_px - ncov_xp + ncov_xx
     scovmm = scov_pp - scov_px - scov_xp + scov_xx
-
+    
     
     ncov = np.block([[ncovmm, ncovmp],
                      [ncovpm, ncovpp]])

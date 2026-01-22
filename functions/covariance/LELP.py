@@ -49,19 +49,18 @@ def generate_ccov_LELP(B, D):
             
             psi_b, psi_kd, r_b, r_kd, r_k = params
         
-            y_kb = r_b*np.sin(psi_b)
-            x_kb = r_b*np.cos(psi_b) - r_k
+            x_bd = r_kl * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
+            y_bd = r_kl * np.sin(psi_kd) - r_b * np.sin(psi_b)
             
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
+            r_bd = np.sqrt( x_bd**2 + y_bd**2 ) 
+            psi_bd = np.arctan2(y_bd, x_bd)
     
             f = ( EP[B][D](r_bd) * cos2(psi_bd - psi_b)
-                * (LLp(r_k) * cos2(psi_b) * cos2(psi_kd) + LLx(r_k) * sin2(psi_b) * sin2(psi_kd))
+              * ( LLp(r_k) * cos2(psi_b) * cos2(psi_kd) 
+                + LLx(r_k) * sin2(psi_b) * sin2(psi_kd) )
                 + LP[D](r_bd) * cos2(psi_bd-psi_b)
-                * (LEp[B](r_k) * cos2(psi_b) * cos2(psi_kd) + LEx[B](r_k) * sin2(psi_b) * sin2(psi_kd))
+              * ( LEp[B](r_k) * cos2(psi_b) * cos2(psi_kd) 
+                + LEx[B](r_k) * sin2(psi_b) * sin2(psi_kd))
                 )
             
             f *= 2 * np.pi * r_k * r_b * r_kd
@@ -72,19 +71,18 @@ def generate_ccov_LELP(B, D):
             
             psi_b, psi_kd, r_b, r_kd, r_k = params
         
-            y_kb = r_b*np.sin(psi_b)
-            x_kb = r_b*np.cos(psi_b) - r_k
+            x_bd = r_kd * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
+            y_bd = r_kd * np.sin(psi_kd) - r_b * np.sin(psi_b)
             
-            r_kb = np.sqrt( y_kb**2 + x_kb**2 ) 
-            psi_kb = np.arctan2(y_kb, x_kb)
-            
-            r_bd = cos_law_side(r_kd, r_kb, (psi_kd-psi_kb))
-            psi_bd = cos_law_angle(r_kd, r_bd, r_kb) + psi_kd
+            r_bd = np.sqrt( x_bd**2 + y_bd**2 ) 
+            psi_bd = np.arctan2(y_bd, x_bd)
     
             f = ( EP[B][D](r_bd) * cos2(psi_bd - psi_b)
-                * (LLx(r_k) * cos2(psi_b) * sin2(psi_kd) - LLp(r_k) * sin2(psi_b) * cos2(psi_kd))
+              * ( LLx(r_k) * cos2(psi_b) * sin2(psi_kd) 
+                - LLp(r_k) * sin2(psi_b) * cos2(psi_kd) )
                 + LP[D](r_bd) * cos2(psi_bd-psi_b)
-                * (LEx[B](r_k) * cos2(psi_b) * sin2(psi_kd) - LEp[B](r_k) * sin2(psi_b) * cos2(psi_kd))
+              * ( LEx[B](r_k) * cos2(psi_b) * sin2(psi_kd) 
+                - LEp[B](r_k) * sin2(psi_b) * cos2(psi_kd))
                 )
             
             f *= 2 * np.pi * r_k * r_b * r_kd

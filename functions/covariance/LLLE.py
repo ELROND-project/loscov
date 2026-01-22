@@ -46,20 +46,17 @@ def generate_ccov_LLLE(D):
         err_xp = np.zeros((Nbin1, Nbin2))
         err_xx = np.zeros((Nbin1, Nbin2))    
         
-        # Define the integrands (compLExe from here)
+        # Define the integrands
         
         def integrand_pp(params):
             
             psi_j, psi_kd, r_j, r_kd, r_k = params
         
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
+            x_jd = r_kd * np.cos(psi_kd) - r_j * np.cos(psi_j) + r_k
+            y_jd = r_kd * np.sin(psi_kd) - r_j * np.sin(psi_j)
             
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jd = cos_law_side(r_kd, r_kj, (psi_kd-psi_kj))
-            psi_jd = cos_law_angle(r_kd, r_jd, r_kj) + psi_kd
+            r_jd = np.sqrt( x_jd**2 + y_jd**2 ) 
+            psi_jd = np.arctan2(y_jd, x_jd)
     
             f = ( ( LLp(r_k) * cos2(psi_j) * cos2(psi_kd)
                   + LLx(r_k) * sin2(psi_j) * sin2(psi_kd) )
@@ -75,14 +72,11 @@ def generate_ccov_LLLE(D):
             
             psi_j, psi_kd, r_j, r_kd, r_k = params
         
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
+            x_jd = r_kd * np.cos(psi_kd) - r_j * np.cos(psi_j) + r_k
+            y_jd = r_kd * np.sin(psi_kd) - r_j * np.sin(psi_j)
             
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jd = cos_law_side(r_kd, r_kj, (psi_kd-psi_kj))
-            psi_jd = cos_law_angle(r_kd, r_jd, r_kj) + psi_kd
+            r_jd = np.sqrt( x_jd**2 + y_jd**2 ) 
+            psi_jd = np.arctan2(y_jd, x_jd)
     
             f = -( ( LLp(r_k) * cos2(psi_j) * sin2(psi_kd)
                   - LLx(r_k) * sin2(psi_j) * cos2(psi_kd) )
@@ -98,19 +92,16 @@ def generate_ccov_LLLE(D):
             
             psi_j, psi_kd, r_j, r_kd, r_k = params
         
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
+            x_jd = r_kd * np.cos(psi_kd) - r_j * np.cos(psi_j) + r_k
+            y_jd = r_kd * np.sin(psi_kd) - r_j * np.sin(psi_j)
             
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jd = cos_law_side(r_kd, r_kj, (psi_kd-psi_kj))
-            psi_jd = cos_law_angle(r_kd, r_jd, r_kj) + psi_kd
+            r_jd = np.sqrt( x_jd**2 + y_jd**2 ) 
+            psi_jd = np.arctan2(y_jd, x_jd)
     
             f = -( ( LLp(r_k) * sin2(psi_j) * cos2(psi_kd)
-                  - LLx(r_k) * cos2(psi_j) * sin2(psi_kd) )
-                * ( LEp[D](r_jd) * sin2(psi_jd - psi_j) * cos2(psi_jd - psi_kd)
-                  - LEx[D](r_jd) * cos2(psi_jd - psi_j) * sin2(psi_jd - psi_kd) )
+                   - LLx(r_k) * cos2(psi_j) * sin2(psi_kd) )
+                 * ( LEp[D](r_jd) * sin2(psi_jd - psi_j) * cos2(psi_jd - psi_kd)
+                   - LEx[D](r_jd) * cos2(psi_jd - psi_j) * sin2(psi_jd - psi_kd) )
                 )
             
             f *= 2 * np.pi * r_k * r_j * r_kd
@@ -121,14 +112,11 @@ def generate_ccov_LLLE(D):
             
             psi_j, psi_kd, r_j, r_kd, r_k = params
         
-            y_kj = r_j*np.sin(psi_j)
-            x_kj = r_j*np.cos(psi_j) - r_k
+            x_jd = r_kd * np.cos(psi_kd) - r_j * np.cos(psi_j) + r_k
+            y_jd = r_kd * np.sin(psi_kd) - r_j * np.sin(psi_j)
             
-            r_kj = np.sqrt( y_kj**2 + x_kj**2 ) 
-            psi_kj = np.arctan2(y_kj, x_kj)
-            
-            r_jd = cos_law_side(r_kd, r_kj, (psi_kd-psi_kj))
-            psi_jd = cos_law_angle(r_kd, r_jd, r_kj) + psi_kd
+            r_jd = np.sqrt( x_jd**2 + y_jd**2 ) 
+            psi_jd = np.arctan2(y_jd, x_jd)
     
             f = ( ( LLp(r_k) * sin2(psi_j) * sin2(psi_kd)
                   + LLx(r_k) * cos2(psi_j) * cos2(psi_kd) )
@@ -254,7 +242,8 @@ def generate_ncov_LLLE(D):
             psi_jd = np.arctan2(y_jd, x_jd)
             
             f = ( cos2(psi_d) 
-                * ( LEp[D](r_jd) * cos2(psi_jd) * cos2(psi_jd - psi_d) + LEx[D](r_jd) * sin2(psi_jd) * sin2(psi_jd-psi_d) ) )
+                * ( LEp[D](r_jd) * cos2(psi_jd) * cos2(psi_jd - psi_d) 
+                  + LEx[D](r_jd) * sin2(psi_jd) * sin2(psi_jd - psi_d) ) )
             
             f *= 2 * np.pi * r_j * r_d
                                   
@@ -271,7 +260,8 @@ def generate_ncov_LLLE(D):
             psi_jd = np.arctan2(y_jd, x_jd)
             
             f = - ( sin2(psi_d) 
-                * ( LEp[D](r_jd) * cos2(psi_jd) * sin2(psi_jd - psi_d) - LEx[D](r_jd) * sin2(psi_jd) * cos2(psi_jd-psi_d) ) )
+                * ( LEp[D](r_jd) * cos2(psi_jd) * sin2(psi_jd - psi_d) 
+                  - LEx[D](r_jd) * sin2(psi_jd) * cos2(psi_jd - psi_d) ) )
     
             f *= 2 * np.pi * r_j * r_d
                                   
@@ -288,7 +278,8 @@ def generate_ncov_LLLE(D):
             psi_jd = np.arctan2(y_jd, x_jd)
             
             f = ( sin2(psi_d) 
-                * ( LEp[D](r_jd) * sin2(psi_jd) * cos2(psi_jd - psi_d) - LEx[D](r_jd) * cos2(psi_jd) * sin2(psi_jd-psi_d) ) )
+                * ( LEp[D](r_jd) * sin2(psi_jd) * cos2(psi_jd - psi_d) 
+                  - LEx[D](r_jd) * cos2(psi_jd) * sin2(psi_jd - psi_d) ) )
     
             f *= 2 * np.pi * r_j * r_d
                                   
@@ -305,7 +296,8 @@ def generate_ncov_LLLE(D):
             psi_jd = np.arctan2(y_jd, x_jd)
             
             f = ( cos2(psi_d) 
-                * ( LEp[D](r_jd) * sin2(psi_jd) * sin2(psi_jd - psi_d) + LEx[D](r_jd) * cos2(psi_jd) * cos2(psi_jd-psi_d) ) )
+                * ( LEp[D](r_jd) * sin2(psi_jd) * sin2(psi_jd - psi_d) 
+                  + LEx[D](r_jd) * cos2(psi_jd) * cos2(psi_jd - psi_d) ) )
     
             f *= 2 * np.pi * r_j * r_d
                                   

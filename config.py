@@ -141,7 +141,7 @@ chimin = 1e-5
 ############################################ noise ###########################################################
 
 sigma_E = np.sqrt(2) * 0.3                                            #the noise from the galaxy shapes on cosmic shear
-sigma_L = 0.1                                                         #noise on the LOS shear (expect 0.05)  
+sigma_L = 0.1                                                        #noise on the LOS shear (expect 0.05)  
 
 ##################################### numerical stuff ########################################################
 
