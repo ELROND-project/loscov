@@ -13,14 +13,14 @@ compute_correlations = False     #computes the correlation functions necessary f
 ##############################################################################################################
 
 sky_coverage = 15e3     #area of sky covered by the survey (deg^2)
-Nlens = 1e4             #number of lenses (expect 1e5)
+Nlens = 1e5             #number of lenses (expect 1e5)
 
 NGal = 2e9              #total number of galaxies (expect 2e9)
 
 ######################################## Redshift distribution ##########################################
 
 zmax_dist = 3           #the default maximum redshift being considered
-Nbin_z = 1              #the default number of redshift bins
+Nbin_z = 6              #the default number of redshift bins
 
 # redshift bin limits 
 # binscheme_E = [0,0.4676,0.7194,0.9625,1.3319,3]
@@ -141,13 +141,14 @@ chimin = 1e-5
 ############################################ noise ###########################################################
 
 sigma_E = np.sqrt(2) * 0.3                                            #the noise from the galaxy shapes on cosmic shear
-sigma_L = 0.1                                                        #noise on the LOS shear (expect 0.05)  
+sigma_L = 0.05                                                        #noise on the LOS shear (expect 0.05)  
 
 ##################################### numerical stuff ########################################################
 
 max_cpus = 512
 nsamp_string = '1e6'
 nsamp = int(float(nsamp_string))
+# nsamp = 1 << (nsamp - 1).bit_length() #turns it into a power of 2
 Csamp = nsamp*10        #default number of samples in the Monte Carlo integrator for triple cosmic integrals
 Nsamp = nsamp           #default number of samples in the Monte Carlo integrator for double noise/sparsity integrals
 num_batches = 1000     #should be > maxsamp * 373 / (ram per node)
@@ -184,9 +185,11 @@ from multiprocessing import Pool, cpu_count
 from multiprocessing import Process, Manager
 from itertools import product
 import inspect
-from scipy.stats import norm
+from scipy.stats import norm, qmc
 from scipy.integrate import quad
 from scipy.optimize import root_scalar, minimize_scalar
+
+from numba import njit, prange, get_num_threads
 
 ############################################### Cosmology #####################################################
 

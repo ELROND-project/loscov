@@ -49,8 +49,8 @@ def generate_ccov_LELP(B, D):
             
             psi_b, psi_kd, r_b, r_kd, r_k = params
         
-            x_bd = r_kl * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
-            y_bd = r_kl * np.sin(psi_kd) - r_b * np.sin(psi_b)
+            x_bd = r_kd * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
+            y_bd = r_kd * np.sin(psi_kd) - r_b * np.sin(psi_b)
             
             r_bd = np.sqrt( x_bd**2 + y_bd**2 ) 
             psi_bd = np.arctan2(y_bd, x_bd)

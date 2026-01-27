@@ -84,6 +84,25 @@ def generate_ccov_LLLL():
             
             return f
         
+        def integrand_xp(params):
+            
+            psi_j, psi_kl, r_j, r_kl, r_k = params
+        
+            x_jl = r_kl * np.cos(psi_kl) - r_j * np.cos(psi_j) + r_k
+            y_jl = r_kl * np.sin(psi_kl) - r_j * np.sin(psi_j)
+            
+            r_jl = np.sqrt( x_jl**2 + y_jl**2 ) 
+            psi_jl = np.arctan2(y_jl, x_jl)
+    
+            f = - ( ( LLp(r_k) * sin2(psi_j) * cos2(psi_kl)
+                    - LLx(r_k) * cos2(psi_j) * sin2(psi_kl) ) 
+                  * ( LLp(r_jl) * sin2(psi_jl - psi_j) * cos2(psi_jl - psi_kl)
+                    - LLx(r_jl) * cos2(psi_jl - psi_j) * sin2(psi_jl - psi_kl) ) )
+    
+            f *= 2 * np.pi * r_k * r_j * r_kl
+            
+            return f
+        
         def integrand_xx(params):
             
             psi_j, psi_kl, r_j, r_kl, r_k = params
@@ -121,7 +140,7 @@ def generate_ccov_LLLL():
                          
                 ccov_pp[alpha, beta], err_pp[alpha, beta] = integral_bins(integrand_pp, alpha, beta)
                 ccov_px[alpha, beta], err_px[alpha, beta] = integral_bins(integrand_px, alpha, beta)
-                ccov_xp[alpha, beta], err_xp[alpha, beta] = integral_bins(integrand_px, beta, alpha) #from symmetry
+                ccov_xp[alpha, beta], err_xp[alpha, beta] =  integral_bins(integrand_xp, alpha, beta)
                 ccov_xx[alpha, beta], err_xx[alpha, beta] = integral_bins(integrand_xx, alpha, beta)
     
                 # test_err(err_pp[alpha, beta], ccov_pp[alpha, beta], f'LLLL ccov plus plus angular bins {alpha, beta}')
@@ -244,6 +263,23 @@ def generate_ncov_LLLL():
                                   
             return f
         
+        def integrand_xp(params):
+            
+            r_j, r_l, psi_l = params
+        
+            y_jl = r_l*np.sin(psi_l)
+            x_jl = r_l*np.cos(psi_l) - r_j
+            
+            r_jl = np.sqrt( y_jl**2 + x_jl**2 ) 
+            psi_jl = np.arctan2(y_jl, x_jl)
+            
+            f = sin2(psi_l) * ( LLp(r_jl) * sin2(psi_jl) * cos2(psi_jl - psi_l) 
+                              - LLx(r_jl) * cos2(psi_jl) * sin2(psi_jl - psi_l) )
+    
+            f *= 2 * np.pi * r_j * r_l
+                                  
+            return f
+        
         def integrand_xx(params):
             
             r_j, r_l, psi_l = params
@@ -278,7 +314,7 @@ def generate_ncov_LLLL():
                          
                 int_pp, err_pp = integral_bins(integrand_pp, alpha, beta)
                 int_px, err_px = integral_bins(integrand_px, alpha, beta)
-                int_xp, err_xp = integral_bins(integrand_px, beta, alpha)
+                int_xp, err_xp = integral_bins(integrand_xp, alpha, beta)
                 int_xx, err_xx = integral_bins(integrand_xx, alpha, beta)
                          
                 ncov_pp[alpha, beta] = (sigma_L**2/Nlens) * int_pp

@@ -38,7 +38,7 @@ def generate_ccov_LPLP(B, D):
     ccov = np.zeros((Nbin1, Nbin2))
     err = np.zeros((Nbin1, Nbin2))
     
-    # Define the integrands (complete from here)
+    # Define the integrands
     
     def integrand(params):
         
