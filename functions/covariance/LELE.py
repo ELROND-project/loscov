@@ -26,15 +26,12 @@ def _ccov_integrand_LELE(params, r_grid, LLp_grid, LLx_grid, LEp_B_grid, LEx_B_g
     """
     psi_b, psi_kd, r_b, r_kd, r_k = params
 
-    # Geometry (computed once for all 4 components)
-    y_kb = r_b * np.sin(psi_b)
-    x_kb = r_b * np.cos(psi_b) - r_k
+    # Geometry (computed once for all 4 components) - Direct Cartesian calculation
+    x_bd = r_kd * np.cos(psi_kd) - r_b * np.cos(psi_b) + r_k
+    y_bd = r_kd * np.sin(psi_kd) - r_b * np.sin(psi_b)
 
-    r_kb = np.sqrt(y_kb**2 + x_kb**2)
-    psi_kb = np.arctan2(y_kb, x_kb)
-
-    r_bd = cos_law_side_jit(r_kd, r_kb, (psi_kd - psi_kb))
-    psi_bd = cos_law_angle_jit(r_kd, r_bd, r_kb) + psi_kd
+    r_bd = np.sqrt(x_bd**2 + y_bd**2)
+    psi_bd = np.arctan2(y_bd, x_bd)
 
     # Pre-compute trig functions (used multiple times)
     c2_b = cos2_jit(psi_b)

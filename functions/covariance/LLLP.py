@@ -25,15 +25,12 @@ def _ccov_integrand_LLLP(params, r_grid, LLp_grid, LLx_grid, LP_D_grid):
     """
     psi_j, psi_kd, r_j, r_kd, r_k = params
 
-    # Geometry (computed once for both components)
-    y_kj = r_j * np.sin(psi_j)
-    x_kj = r_j * np.cos(psi_j) - r_k
+    # Geometry (computed once for both components) - Direct Cartesian calculation
+    x_jd = r_kd * np.cos(psi_kd) - r_j * np.cos(psi_j) + r_k
+    y_jd = r_kd * np.sin(psi_kd) - r_j * np.sin(psi_j)
 
-    r_kj = np.sqrt(y_kj**2 + x_kj**2)
-    psi_kj = np.arctan2(y_kj, x_kj)
-
-    r_jd = cos_law_side_jit(r_kd, r_kj, (psi_kd - psi_kj))
-    psi_jd = cos_law_angle_jit(r_kd, r_jd, r_kj) + psi_kd
+    r_jd = np.sqrt(x_jd**2 + y_jd**2)
+    psi_jd = np.arctan2(y_jd, x_jd)
 
     # Pre-compute trig functions (used multiple times)
     c2_j = cos2_jit(psi_j)

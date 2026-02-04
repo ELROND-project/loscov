@@ -19,7 +19,6 @@ def radtoarcmin(angle_rad):
     
     return angle_arcmin
 
-
 def arcmintorad(angle_arcmin):
     """
     This function converts an an angle expressed in arcmins
@@ -37,30 +36,6 @@ def delta_func(a,b):
         x = 0
 
     return x
-
-def cos_law_side(b,c,A):
-
-    number = b**2 + c**2 - 2*b*c*np.cos(A)
-
-    if np.any(number < 0):
-        print("warning! number = ", number)
-    
-    return np.sqrt(b**2 + c**2 - 2*b*c*np.cos(A))
-
-def cos_law_angle(b, c, a):
-    b = np.asarray(b)
-    c = np.asarray(c)
-    a = np.asarray(a)
-    
-    denominator = 2 * b * c
-    
-    if np.any(denominator == 0):
-        raise ValueError("Invalid input: some values of b or c are zero, leading to division by zero.")
-    
-    cos_angle = (b**2 + c**2 - a**2) / denominator
-    cos_angle = np.clip(cos_angle, -1.0, 1.0)
-    
-    return np.arccos(cos_angle)
 
 def sin2(x):
     return np.sin(2*x)
@@ -80,25 +55,6 @@ def sin2_jit(x):
 def cos2_jit(x):
     """JIT-compiled cos(2x)."""
     return np.cos(2*x)
-
-@njit
-def cos_law_side_jit(b, c, A):
-    """JIT-compiled law of cosines to find side a given sides b, c and angle A."""
-    value = b**2 + c**2 - 2*b*c*np.cos(A)
-    # Clip small negative values to avoid NaNs from roundoff.
-    value = np.maximum(value, 0.0)
-    return np.sqrt(value)
-
-@njit
-def cos_law_angle_jit(b, c, a):
-    """JIT-compiled law of cosines to find angle A given sides a, b, c."""
-    denom = 2 * b * c
-    cos_angle = (b**2 + c**2 - a**2) / denom
-    # Guard degenerate triangles to avoid NaNs.
-    cos_angle = np.where(denom == 0, 1.0, cos_angle)
-    # Clip to [-1, 1] to handle numerical precision issues.
-    cos_angle = np.minimum(np.maximum(cos_angle, -1.0), 1.0)
-    return np.arccos(cos_angle)
 
 @njit
 def interp_jit(x, xp, fp):
@@ -601,6 +557,7 @@ def quasi_monte_carlo_integrate(
         else:
             std_integral = 0.0
         return float(mean_integral), float(std_integral)
+
 
 
 def test_err(error, signal, name):
