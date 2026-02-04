@@ -554,15 +554,15 @@ def generate_ncov_LELE(B, D):
                         scov_pp[alpha, beta] += cterm_s
                         scov_xx[alpha, beta] += cterm_s
     
-            test_err(nerr_pp[alpha, beta], ncov_pp[alpha, beta], f'LELE ncov plus plus redshift bins {B,D} angular bins {alpha, beta}')
-            test_err(nerr_px[alpha, beta], ncov_px[alpha, beta], f'LELE ncov plus times redshift bins {B,D} angular bins {alpha, beta}')
-            test_err(nerr_xp[alpha, beta], ncov_xp[alpha, beta], f'LELE ncov times plus redshift bins {B,D} angular bins {alpha, beta}')
-            test_err(nerr_xx[alpha, beta], ncov_xx[alpha, beta], f'LELE ncov times times redshift bins {B,D} angular bins {alpha, beta}')
+                test_err(nerr_pp[alpha, beta], ncov_pp[alpha, beta], f'LELE ncov plus plus redshift bins {B,D} angular bins {alpha, beta}')
+                test_err(nerr_px[alpha, beta], ncov_px[alpha, beta], f'LELE ncov plus times redshift bins {B,D} angular bins {alpha, beta}')
+                test_err(nerr_xp[alpha, beta], ncov_xp[alpha, beta], f'LELE ncov times plus redshift bins {B,D} angular bins {alpha, beta}')
+                test_err(nerr_xx[alpha, beta], ncov_xx[alpha, beta], f'LELE ncov times times redshift bins {B,D} angular bins {alpha, beta}')
             
-            test_err(serr_pp[alpha, beta], scov_pp[alpha, beta], f'LELE scov plus plus redshift bins {B,D} angular bins {alpha, beta}')
-            test_err(serr_px[alpha, beta], scov_px[alpha, beta], f'LELE scov plus times redshift bins {B,D} angular bins {alpha, beta}')
-            test_err(serr_xp[alpha, beta], scov_xp[alpha, beta], f'LELE scov times plus redshift bins {B,D} angular bins {alpha, beta}')
-            test_err(serr_xx[alpha, beta], scov_xx[alpha, beta], f'LELE scov times times redshift bins {B,D} angular bins {alpha, beta}')
+                test_err(serr_pp[alpha, beta], scov_pp[alpha, beta], f'LELE scov plus plus redshift bins {B,D} angular bins {alpha, beta}')
+                test_err(serr_px[alpha, beta], scov_px[alpha, beta], f'LELE scov plus times redshift bins {B,D} angular bins {alpha, beta}')
+                test_err(serr_xp[alpha, beta], scov_xp[alpha, beta], f'LELE scov times plus redshift bins {B,D} angular bins {alpha, beta}')
+                test_err(serr_xx[alpha, beta], scov_xx[alpha, beta], f'LELE scov times times redshift bins {B,D} angular bins {alpha, beta}')
 
         nerr = np.sqrt(nerr_pp**2 + nerr_px**2 + nerr_xp**2 + nerr_xx**2)
         serr = np.sqrt(serr_pp**2 + serr_px**2 + serr_xp**2 + serr_xx**2)
