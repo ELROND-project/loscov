@@ -533,8 +533,6 @@ def generate_ncov_LELE(B, D):
                               np.sqrt(  serr_xx[alpha, beta]**2
                                       + ( (E0[B]/G_B) * err_xx[1])**2 )
                               )
-                
-                    Omega_anb = annuli_intersection_area(rs1[alpha], rs1[alpha+1], rs2[beta], rs2[beta+1])
     
                     if alpha == beta:
                         

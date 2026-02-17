@@ -7,14 +7,13 @@ from config import *
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from useful_functions import *
 
-
 def get_cls_mixed_LP(b, chimax, lmax, nl):
     """
-    This function generates cls for convergence and shear
+    This function generates Cls for convergence and shear
     It takes as argument the maximum multipole lmax.
     nl is the number of values to be computed.
 
-    b : redshift bin in question (0 to Nbinz_P)
+    b : redshift bin in question (0 to 4)
     """
 
     get_item('Q_LOS_mean_intp', 'Q_d_intp')
@@ -31,14 +30,14 @@ def get_cls_mixed_LP(b, chimax, lmax, nl):
     chis = chis[1:-1]
     zs = zs[1:-1]
 
-    #CAMB correction
-    CAMB_factor = ((1+zs) * 1.5 * Omega_M * (H0/(c*1e-3))**2)**(-1)
+    #the CAMB correction
+    CAMB_factor = ( (1.5*Omega_M*(H0/(c*1e-3))**2)**(-1) ) * (1+zs)**(-1)
     
-    # Lensing kernel (here LOS shear)
-    kernel2LOS = Q_LOS_mean_intp(chis) * CAMB_factor
+    # Lensing kernel (here LOS shear) with correction for CAMB units 
+    kernel2LOS = Q_LOS_mean_intp(chis)  * CAMB_factor
     
-    # Lensing kernel (here position)
-    kernel2d = Q_d_intp[b](chis) * CAMB_factor
+    # Lensing kernel (here position) with correction for CAMB units 
+    kernel2d = Q_d_intp[b](chis)  * CAMB_factor 
     
     # kernel2d = np.heaviside(kernel2d,0)*kernel2d
     # kernel2d = np.sqrt(kernel2d)

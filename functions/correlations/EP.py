@@ -44,7 +44,6 @@ def get_cls_mixed_EP(b1, b2, chimax, lmax, nl):
     kernel2d = Q_d_mean_intp[b2](chis) * CAMB_factor
     kerneld = QQ_d_rms_intp[b2](chis)  * CAMB_factor
     
-    
     # Integration over chi
     lmin = 1
     ls = np.logspace(np.log10(lmin), np.log10(lmax), nl)

@@ -121,11 +121,9 @@ class Angular_Distributions:
     and their binning in angular separation
     """
     
-    def __init__(self, Nobjects, binscheme=None, sky_coverage=sky_coverage, Nbin_a=None, Thetamax=Thetamax_dist):
+    def __init__(self, binscheme=None, sky_coverage=sky_coverage, Nbin_a=None, Thetamax=Thetamax_dist):
         """
         Arguments:
-        - Nlens         : number of lenses we can use
-        - Ngal          : number of galaxies we can use
         - sky_coverage  : area of the survey footprint, in deg2 
         - Nbin_a         : number of bins of angular separation
         - b1            : the first angular separation bin
@@ -136,10 +134,8 @@ class Angular_Distributions:
         All the angular attributes will be expressed in rad.
         """
         
-        # Lens number and density
+        # sky coverage
         self.Omegatot = sky_coverage * (np.pi / 180)**2 # in rad2
-        self.number = Nobjects
-        self.density = Nobjects / self.Omegatot #the density of lenses or galaxies in an angular bin
 
         # Binning
         if isinstance(binscheme, int): 

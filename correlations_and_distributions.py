@@ -485,16 +485,16 @@ if supply_binscheme:
 
     ######## LL
     
-    angular_distribution_LL_plus = Angular_Distributions(Nlens, binscheme=binscheme_LL_plus, Nbin_a=Nbina_LL_plus, Thetamax=Thetamax_LL_plus)
-    angular_distribution_LL_minus = Angular_Distributions(Nlens, binscheme=binscheme_LL_minus, Nbin_a=Nbina_LL_minus, Thetamax=Thetamax_LL_minus)  
+    angular_distribution_LL_plus = Angular_Distributions(binscheme=binscheme_LL_plus, Nbin_a=Nbina_LL_plus, Thetamax=Thetamax_LL_plus)
+    angular_distribution_LL_minus = Angular_Distributions(binscheme=binscheme_LL_minus, Nbin_a=Nbina_LL_minus, Thetamax=Thetamax_LL_minus)  
 
     ######## LE
 
     angular_distribution_LE_plus = []
     angular_distribution_LE_minus = []
 
-    ad_plus = Angular_Distributions(NGal, binscheme=binscheme_LE_plus, Nbin_a=Nbina_LE_plus, Thetamax=Thetamax_LE_plus)
-    ad_minus = Angular_Distributions(NGal, binscheme=binscheme_LE_minus, Nbin_a=Nbina_LE_minus, Thetamax=Thetamax_LE_minus)
+    ad_plus = Angular_Distributions(binscheme=binscheme_LE_plus, Nbin_a=Nbina_LE_plus, Thetamax=Thetamax_LE_plus)
+    ad_minus = Angular_Distributions(binscheme=binscheme_LE_minus, Nbin_a=Nbina_LE_minus, Thetamax=Thetamax_LE_minus)
     
     for zbin in range(Nbinz_E):
         
@@ -505,7 +505,7 @@ if supply_binscheme:
 
     angular_distribution_LP = []
     
-    ad = Angular_Distributions(NGal, binscheme=binscheme_LP, Nbin_a=Nbina_LP, Thetamax=Thetamax_LP)
+    ad = Angular_Distributions(binscheme=binscheme_LP, Nbin_a=Nbina_LP, Thetamax=Thetamax_LP)
     
     for zbin in range(Nbinz_P):
         
@@ -519,8 +519,8 @@ else:
     binscheme_LL_plus = optimise_bins(LL_plus, 'LL', LL_plus_primitive, b = None, SNR_goal = SNR_goal_LL_plus, Nbin_max = Nbin_max_LL_plus, SNR_min = SNR_min_LL_plus)
     binscheme_LL_minus = optimise_bins(LL_minus, 'LL', LL_minus_primitive, b = None, SNR_goal = SNR_goal_LL_minus, Nbin_max = Nbin_max_LL_minus, SNR_min = SNR_min_LL_minus)
 
-    angular_distribution_LL_plus = Angular_Distributions(Nlens, binscheme=binscheme_LL_plus, Nbin_a = None, Thetamax=Thetamax_LL_plus)
-    angular_distribution_LL_minus = Angular_Distributions(Nlens, binscheme=binscheme_LL_minus, Nbin_a = None, Thetamax=Thetamax_LL_minus)  
+    angular_distribution_LL_plus = Angular_Distributions(binscheme=binscheme_LL_plus, Nbin_a = None, Thetamax=Thetamax_LL_plus)
+    angular_distribution_LL_minus = Angular_Distributions(binscheme=binscheme_LL_minus, Nbin_a = None, Thetamax=Thetamax_LL_minus)  
 
     ######## LE
 
@@ -535,8 +535,8 @@ else:
         binscheme_LE_plus.append(optimise_bins(LE_plus[zbin], 'LE', LE_plus_primitive[zbin], b = zbin, SNR_goal = SNR_goal_LE_plus, Nbin_max = Nbin_max_LE_plus, SNR_min = SNR_min_LE_plus))
         binscheme_LE_minus.append(optimise_bins(LE_minus[zbin], 'LE', LE_minus_primitive[zbin], b = zbin, SNR_goal = SNR_goal_LE_minus, Nbin_max = Nbin_max_LE_minus, SNR_min = SNR_min_LE_minus))
         
-        angular_distribution_LE_plus.append(Angular_Distributions(NGal, binscheme=binscheme_LE_plus[zbin], Nbin_a = None, Thetamax=Thetamax_LE_plus))
-        angular_distribution_LE_minus.append(Angular_Distributions(NGal, binscheme=binscheme_LE_minus[zbin], Nbin_a = None, Thetamax=Thetamax_LE_minus))
+        angular_distribution_LE_plus.append(Angular_Distributions(binscheme=binscheme_LE_plus[zbin], Nbin_a = None, Thetamax=Thetamax_LE_plus))
+        angular_distribution_LE_minus.append(Angular_Distributions(binscheme=binscheme_LE_minus[zbin], Nbin_a = None, Thetamax=Thetamax_LE_minus))
 
     ######## LP
 
@@ -548,7 +548,7 @@ else:
         
         binscheme_LP.append(optimise_bins(LP[zbin], 'LP', LP_primitive[zbin], b = zbin, SNR_goal = SNR_goal_LP, Nbin_max = Nbin_max_LP, SNR_min = SNR_min_LP))
         
-        angular_distribution_LP.append(Angular_Distributions(NGal, binscheme=binscheme_LP[zbin], Nbin_a = None, Thetamax=Thetamax_LP))
+        angular_distribution_LP.append(Angular_Distributions(binscheme=binscheme_LP[zbin], Nbin_a = None, Thetamax=Thetamax_LP))
 
     print(f'binscheme LL_plus: {binscheme_LL_plus}')
     print(f'binscheme LL_minus: {binscheme_LL_minus}')
