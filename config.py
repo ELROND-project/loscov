@@ -189,7 +189,7 @@ from scipy.stats import norm, qmc
 from scipy.integrate import quad
 from scipy.optimize import root_scalar, minimize_scalar
 
-from numba import njit, prange, get_num_threads
+# from numba import njit, prange, get_num_threads
 
 ############################################### Cosmology #####################################################
 
