@@ -1,5 +1,5 @@
 # loscov
-Code used in the generation and plotting of correlation functions and covariance matrices for the 6x2pt correlation functions between galaxy positions, galaxy shapes and strong lensing line-of-sight shear, used in Fleury et al. 2026 (link to paper).
+Code used in the generation and plotting of correlation functions and covariance matrices for the 6x2pt correlation functions between galaxy positions, galaxy shapes and strong lensing line-of-sight shear, used in Fleury et al. 2026.
 
 This current version is a work in progress, and computes only the covariance of the 3 new observables, LL, LE and LP. It will be updated in future to include the full 6x2pt scheme, as well as with general speed-ups and other improvements.
 
@@ -19,4 +19,4 @@ Note that the .sh files are adapted to the particular computing cluster used by 
 
 ## Attribution
 
-Please cite Fleury et al. 2026 (link) if loscov is used for a publication, and link https://github.com/ELROND-project/loscov. Feel free to get in touch with any questions you might have!
+Please cite Fleury et al. 2026 if loscov is used for a publication, and link https://github.com/ELROND-project/loscov. Feel free to get in touch with any questions you might have!
