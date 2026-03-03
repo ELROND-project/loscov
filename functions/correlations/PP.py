@@ -13,7 +13,20 @@ get_item('redshift_distributions')
 
 #the galaxy bias
 def bias(z):
-    return 1.1*z**2.4/(1+z)+0.9
+    """
+    Galaxy bias from the Euclid flagship simulation.
+    The fitting function was found in Eq. (11) of https://arxiv.org/pdf/2104.05698
+    The parameters A, B, C were deduced from Fig. 5, left panel, therein.
+    """
+    
+    A = 1.1
+    B = 2.4
+    C = 0.9
+    
+    b = A * z**B /(1 + z) + C
+    
+    return b
+
 
 #the "weight function" (the equivalent of W_mean in os and LOS)
 def Q_d(chi, b):
