@@ -50,11 +50,11 @@ def get_DD_correlations(cl_DD_intp, Thetamin, Thetamax, nTheta=nTheta):
 	"""
 		
 	# initialise Hankel transforms
-	ht0 = HankelTransform(nu=0, N=1e4, h=1e-2) 
-		
+	ht0 = HankelTransform(nu=0, N=1e4, h=1e-2)
+
 	# define angular domain
-	Theta = np.linspace(Thetamin, Thetamax, nTheta)
-		
+	Theta = np.logspace(np.log10(Thetamin), np.log10(Thetamax), nTheta)
+
 	xi = ht0.transform(cl_DD_intp, Theta, ret_err=False)/(2*np.pi)
 		
 	return Theta, xi
@@ -73,11 +73,11 @@ def get_gD_correlations(cl_gD_intp, Thetamin, Thetamax, nTheta=nTheta):
 	"""
 		
 	# initialise Hankel transforms
-	ht2 = HankelTransform(nu=2, N=1e4, h=1e-2) 
-	 
+	ht2 = HankelTransform(nu=2, N=1e4, h=1e-2)
+
 	# define angular domain
-	Theta = np.linspace(Thetamin, Thetamax, nTheta)
-		
+	Theta = np.logspace(np.log10(Thetamin), np.log10(Thetamax), nTheta)
+
 	xi_gD = ht2.transform(cl_gD_intp, Theta, ret_err=False)/(2*np.pi)
 		
 	return Theta, xi_gD

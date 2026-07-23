@@ -74,9 +74,9 @@ def generate_ccov_LLLP(D):
             r_jd = np.sqrt( x_jd**2 + y_jd**2 ) 
             psi_jd = np.arctan2(y_jd, x_jd)
     
-            f = ( LP[D](r_jd) * cos2(psi_jd - psi_j)
+            f = ( LP[D](r_jd) * sin2(psi_jd - psi_j)
               * ( LLx(r_k) * cos2(psi_j) * sin2(psi_kd)
-                - LLp(r_k) * sin2(psi_j) * cos2(psi_kd) ) 
+                - LLp(r_k) * sin2(psi_j) * cos2(psi_kd) )
                 )
     
             f *= 2 * np.pi * r_k * r_j * r_kd
