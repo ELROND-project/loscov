@@ -67,7 +67,7 @@ def QQ_LOS_mean(chi):
     """
     redshift = background.redshift_at_comoving_radial_distance(chi)
     
-    QQ = ( 1.5 * Omega_M * (H0/(c*1e-3))**2 )**2 * (1+redshift) * KK_LOS_mean(chi)
+    QQ = ( 1.5 * Omega_M * (H0/(c*1e-3))**2 * (1+redshift) )**2 * KK_LOS_mean(chi)
     
     return QQ
 
